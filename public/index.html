@@ -24,6 +24,7 @@
   .tag.al { background:rgba(61,220,132,.15); color:var(--ok) }
   .tag.pub { background:rgba(255,182,72,.15); color:var(--warn) }
   .tag.no { background:rgba(255,107,107,.15); color:var(--bad) }
+  .tag.warn { background:rgba(255,182,72,.12); color:var(--warn); border:1px dashed rgba(255,182,72,.4) }
   .meta { color:var(--muted); font-size:13px }
   a { color:var(--accent); text-decoration:none }
   details { margin-top:24px; color:var(--muted) }
@@ -57,7 +58,7 @@
     <input id="slug" placeholder="…or check one drop: paste an OpenSea collection URL or slug" autocomplete="off" spellcheck="false">
     <button id="go1" type="submit">Check drop</button>
   </form>
-  <p class="meta">The calendar scan covers what OpenSea lists as featured, upcoming, and recently minted. A live drop that's in none of those lists won't be found by the scan — check it directly with its URL.</p>
+  <p class="meta">The calendar scan covers what OpenSea lists as featured, upcoming, and recently minted. A live drop that's in none of those lists won't be found by the scan — check it directly with its URL. OpenSea also refuses to build a mint for a wallet that can't pay the price + gas on that chain — those show as "wallet needs funds", not as ineligible.</p>
 
   <div class="status" id="status"></div>
 
@@ -81,10 +82,16 @@ const eth = (wei) => { const n = Number(wei); return Number.isFinite(n) ? (n / 1
 const stageLine = (s) => `${esc(s.label)}${s.type ? ` <code>${esc(s.type)}</code>` : ""}${s.price != null ? " · " + eth(s.price) : ""}${s.maxPerWallet != null ? " · max " + esc(s.maxPerWallet) + "/wallet" : ""}${s.allowlistCount != null ? " · " + esc(s.allowlistCount) + " allowlisted" : ""}${s.endTime ? " · ends " + esc(fmt(s.endTime)) : ""}`;
 
 function card(d) {
-  const ok = d.status === "eligible";
-  const tag = ok ? (d.looksPublic ? `<span class="tag pub">public stage</span>` : `<span class="tag al">allowlist</span>`) : `<span class="tag no">${esc(d.status.replace("_", " "))}</span>`;
+  const TAGS = {
+    eligible: d.looksPublic ? `<span class="tag pub">public · mintable</span>` : `<span class="tag al">allowlisted · mintable</span>`,
+    eligible_unfunded: `<span class="tag pub">public</span><span class="tag warn">wallet needs funds on ${esc(d.chain || "this chain")}</span>`,
+    allowlist_unfunded: `<span class="tag al">allowlist?</span><span class="tag warn">wallet needs funds — can't confirm allowlist until funded</span>`,
+    limit_reached: `<span class="tag no">per-wallet limit reached</span>`,
+    public_error: `<span class="tag pub">public</span><span class="tag no">OpenSea couldn't build tx</span>`,
+  };
+  const tag = TAGS[d.status] || `<span class="tag no">${esc(d.status.replace(/_/g, " "))}</span>`;
   const stages = (d.stages || []).map(stageLine).join("<br>");
-  const extra = d.status === "not_open" && d.nextStage ? `next: ${stageLine(d.nextStage)} · opens ${esc(fmt(d.nextStart))}` : d.status === "not_eligible" ? `OpenSea said: ${esc(d.reason)}` : d.status === "not_a_drop" ? "OpenSea has no drop for this slug" : "";
+  const extra = d.status === "not_open" && d.nextStage ? `next: ${stageLine(d.nextStage)} · opens ${esc(fmt(d.nextStart))}` : d.reason ? `OpenSea said: ${esc(d.reason)}` : d.status === "not_a_drop" ? "OpenSea has no drop for this slug" : "";
   return `<div class="card"><h3>${esc(d.name)}${d.chain ? ` <span class="meta">[${esc(d.chain)}]</span>` : ""}${tag}</h3>
     <div class="meta">${stages}${extra ? (stages ? "<br>" : "") + extra : ""}${d.minted != null && d.max != null ? `<br>minted ${d.minted}/${d.max}` : ""}</div>
     <div><a href="${esc(d.url)}" target="_blank" rel="noopener">Open on OpenSea →</a></div></div>`;
@@ -100,6 +107,8 @@ function catOfStage(s) {
 }
 const catsOf = (d) => [...new Set((d.stages || []).map(catOfStage))];
 const CAT_NAMES = { gtd: "GTD", fcfs: "FCFS", public: "Public", other: "allowlist" };
+// Shown as cards in the category sections (mintable, or would be if the wallet had funds).
+const SHOW_IN_CATS = new Set(["eligible", "eligible_unfunded", "allowlist_unfunded", "public_error"]);
 
 const counts = { gtd: 0, fcfs: 0, public: 0, other: 0 };
 function resetCats() {
@@ -118,6 +127,7 @@ function addToCats(d) {
 
 const reasonOf = (o) => o.status === "not_open" ? (o.nextStart ? "opens " + fmt(o.nextStart) : "no open stage")
   : o.status === "sold_out" ? "sold out"
+  : o.status === "limit_reached" ? `${catsOf(o).map((c) => CAT_NAMES[c]).join("/")} open — per-wallet limit reached`
   : o.status === "not_eligible" ? `${catsOf(o).map((c) => CAT_NAMES[c]).join("/")} open but not eligible — ${esc(o.reason)}`
   : esc(o.reason || o.status);
 
@@ -138,7 +148,7 @@ $("scan").addEventListener("submit", async (e) => {
     if (cal.errors?.length && !cal.drops.length) throw new Error("OpenSea returned: " + JSON.stringify(cal.errors[0]));
 
     const drops = cal.drops, others = [];
-    let done = 0, hits = 0, i = 0;
+    let done = 0, hits = 0, unfunded = 0, i = 0;
     const tick = () => { status.textContent = `Checked ${done}/${drops.length} drops (${cal.counts.minting} marked live by OpenSea) — ${hits} mintable so far`; };
     tick();
     await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
@@ -146,17 +156,17 @@ $("scan").addEventListener("submit", async (e) => {
         const d = drops[i++];
         try {
           const res = await checkOne(address, d.slug);
-          if (res.status === "eligible") { hits++; addToCats(res); } else others.push(res);
+          if (SHOW_IN_CATS.has(res.status)) { if (res.status === "eligible") hits++; else if (res.status.endsWith("unfunded")) unfunded++; addToCats(res); } else others.push(res);
         } catch (err) { others.push({ name: d.name, status: "error", reason: err.message }); }
         done++; tick();
       }
     }));
-    status.textContent = `Checked ${drops.length} drops. ${hits ? hits + " mintable now." : "Nothing this address can mint right now."}`;
+    status.textContent = `Checked ${drops.length} drops. ${hits} mintable now${unfunded > 0 ? `, plus ${unfunded} open drops this wallet can't pay for on that chain (see "needs funds" tags)` : ""}.`;
 
-    const open = others.filter((o) => o.status === "not_eligible" || o.status === "error");
+    const open = others.filter((o) => ["not_eligible", "limit_reached", "error"].includes(o.status));
     const rest = others.filter((o) => !open.includes(o));
-    if (open.length) out.insertAdjacentHTML("beforeend", `<details open><summary>${open.length} drops are open but this address can't mint (or the check failed)</summary><ul>${open.map((o) => `<li>${esc(o.name || o.slug)} — ${reasonOf(o)}</li>`).join("")}</ul></details>`);
-    if (rest.length) out.insertAdjacentHTML("beforeend", `<details><summary>${rest.length} drops not open or sold out</summary><ul>${rest.map((o) => `<li>${esc(o.name || o.slug)} — ${reasonOf(o)}</li>`).join("")}</ul></details>`);
+    if (open.length) out.insertAdjacentHTML("beforeend", `<details open><summary>${open.length} drops are open but this address can't mint (or the check failed)</summary><ul>${open.map((o) => `<li><a href="${esc(o.url || "https://opensea.io/collection/" + o.slug)}" target="_blank" rel="noopener">${esc(o.name || o.slug)}</a> — ${reasonOf(o)}</li>`).join("")}</ul></details>`);
+    if (rest.length) out.insertAdjacentHTML("beforeend", `<details><summary>${rest.length} drops not open or sold out</summary><ul>${rest.map((o) => `<li><a href="${esc(o.url || "https://opensea.io/collection/" + o.slug)}" target="_blank" rel="noopener">${esc(o.name || o.slug)}</a> — ${reasonOf(o)}</li>`).join("")}</ul></details>`);
   } catch (err) {
     status.textContent = "Error: " + err.message;
   } finally { $("go").disabled = false; }
@@ -175,8 +185,8 @@ $("one").addEventListener("submit", async (e) => {
     const res = await checkOne(address, slug);
     if (res.error) throw new Error(res.error);
     if ($("cats").hidden) resetCats();
-    if (res.status === "eligible") addToCats(res); else out.insertAdjacentHTML("afterbegin", card(res));
-    status.textContent = res.status === "eligible" ? "Eligible." : `Not mintable: ${res.status.replace("_", " ")}.`;
+    if (SHOW_IN_CATS.has(res.status)) addToCats(res); else out.insertAdjacentHTML("afterbegin", card(res));
+    status.textContent = res.status === "eligible" ? "Mintable." : res.status.endsWith("unfunded") ? "Open, but this wallet has no funds on that chain." : `Not mintable: ${res.status.replace(/_/g, " ")}.`;
   } catch (err) { status.textContent = "Error: " + err.message; }
   finally { $("go1").disabled = false; }
 });

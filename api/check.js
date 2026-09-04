@@ -54,10 +54,14 @@ export default async function handler(req, res) {
   if (built) {
     return res.status(200).json({ ...base, ...supply, status: "eligible", stages: open, looksPublic, value: tx.value ?? null, ...(debug ? { mintRaw: tx } : {}) });
   }
-  return res.status(200).json({
-    ...base, ...supply, status: "not_eligible", stages: open, looksPublic,
-    httpStatus: mint.status,
-    reason: tx.error || tx.detail || tx.message || (tx.errors && JSON.stringify(tx.errors)) || tx.raw || `HTTP ${mint.status}`,
-    ...(debug ? { mintRaw: tx } : {}),
-  });
+
+  // OpenSea validates the whole transaction, not just the allowlist. Tell those cases apart.
+  const reason = tx.error || tx.detail || tx.message || (tx.errors && JSON.stringify(tx.errors)) || tx.raw || `HTTP ${mint.status}`;
+  const r = String(reason).toLowerCase();
+  let status = "not_eligible";
+  if (/insufficient (balance|funds)|not enough (eth|balance|funds)/.test(r)) status = looksPublic ? "eligible_unfunded" : "allowlist_unfunded";
+  else if (/limit|max(imum)? per wallet|already minted|exceed/.test(r)) status = "limit_reached";
+  else if (looksPublic) status = "public_error"; // public stage is open to anyone; the error is something else (supply, chain state...)
+
+  return res.status(200).json({ ...base, ...supply, status, stages: open, looksPublic, httpStatus: mint.status, reason, ...(debug ? { mintRaw: tx } : {}) });
 }

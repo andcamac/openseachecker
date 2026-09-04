@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mint Check</title>
+<style>
+  :root { --bg:#0e0f12; --card:#16181d; --line:#262a33; --text:#e8eaf0; --muted:#8a90a0; --ok:#3ddc84; --warn:#ffb648; --accent:#6c8cff; }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:48px 20px 80px; }
+  h1 { font-size:22px; margin:0 0 4px }
+  .sub { color:var(--muted); margin:0 0 24px }
+  form { display:flex; gap:8px; flex-wrap:wrap }
+  input, select { flex:1 1 320px; background:var(--card); border:1px solid var(--line); color:var(--text); padding:12px 14px; border-radius:10px; font:inherit }
+  select { flex:0 0 160px }
+  button { background:var(--accent); color:#fff; border:0; padding:12px 18px; border-radius:10px; font:inherit; font-weight:600; cursor:pointer }
+  button:disabled { opacity:.5; cursor:default }
+  .status { color:var(--muted); margin:18px 0 }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:10px 0 }
+  .card h3 { margin:0 0 4px; font-size:16px }
+  .tag { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle }
+  .tag.al { background:rgba(61,220,132,.15); color:var(--ok) }
+  .tag.pub { background:rgba(255,182,72,.15); color:var(--warn) }
+  .meta { color:var(--muted); font-size:13px }
+  a { color:var(--accent); text-decoration:none }
+  details { margin-top:24px; color:var(--muted) }
+  details li { font-size:13px }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mint Check</h1>
+  <p class="sub">Paste a wallet address. No connecting, no signing — it just asks OpenSea which open drops that address can mint right now.</p>
+
+  <form id="f">
+    <input id="addr" placeholder="0x…" autocomplete="off" spellcheck="false" required pattern="^0x[0-9a-fA-F]{40}$">
+    <select id="chains">
+      <option value="">All chains</option>
+      <option value="ethereum">Ethereum</option>
+      <option value="base">Base</option>
+      <option value="ethereum,base">Ethereum + Base</option>
+    </select>
+    <button id="go" type="submit">Check</button>
+  </form>
+
+  <div class="status" id="status"></div>
+  <div id="out"></div>
+</main>
+
+<script>
+const f = document.getElementById("f"), status = document.getElementById("status"), out = document.getElementById("out"), go = document.getElementById("go");
+const fmt = (ms) => ms ? new Date(ms).toLocaleString() : "";
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+f.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const address = document.getElementById("addr").value.trim();
+  const chains = document.getElementById("chains").value;
+  out.innerHTML = ""; go.disabled = true;
+  status.textContent = "Scanning OpenSea's drop calendar… this takes 15–45 seconds.";
+  try {
+    const r = await fetch(`/api/check?address=${encodeURIComponent(address)}&chains=${encodeURIComponent(chains)}`);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || r.statusText);
+    status.textContent = `Scanned ${data.scanned} drops. ${data.eligible.length ? data.eligible.length + " mintable now." : "Nothing this address can mint right now."}`;
+    for (const d of data.eligible) {
+      const stages = d.stages.map((s) => `${esc(s.label)}${s.price != null ? " @ " + esc(typeof s.price === "object" ? JSON.stringify(s.price) : s.price) : ""}${s.maxPerWallet != null ? ", max " + esc(s.maxPerWallet) + "/wallet" : ""}${s.endTime ? ", ends " + esc(fmt(s.endTime)) : ""}`).join("<br>");
+      out.insertAdjacentHTML("beforeend", `
+        <div class="card">
+          <h3>${esc(d.name)}${d.chain ? ` <span class="meta">[${esc(d.chain)}]</span>` : ""}
+            <span class="tag ${d.looksPublic ? "pub" : "al"}">${d.looksPublic ? "public stage" : "allowlist"}</span></h3>
+          <div class="meta">${stages}${d.minted != null && d.max != null ? `<br>minted ${d.minted}/${d.max}` : ""}</div>
+          <div><a href="${esc(d.url)}" target="_blank" rel="noopener">Open on OpenSea →</a></div>
+        </div>`);
+    }
+    if (data.others.length) {
+      const reason = (o) => o.status === "not_open" ? (o.nextStart ? "opens " + fmt(o.nextStart) : "no open stage") : o.status === "sold_out" ? "sold out" : o.status === "not_eligible" ? "not eligible" + (o.reason ? " (" + esc(o.reason) + ")" : "") : esc(o.reason || o.status);
+      out.insertAdjacentHTML("beforeend", `<details><summary>${data.others.length} other drops (not open, sold out, or not eligible)</summary><ul>${data.others.map((o) => `<li>${esc(o.name)} — ${reason(o)}</li>`).join("")}</ul></details>`);
+    }
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally { go.disabled = false; }
+});
+</script>
+</body>
+</html>

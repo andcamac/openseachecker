@@ -5,108 +5,180 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mint Check</title>
 <style>
-  :root { --bg:#0e0f12; --card:#16181d; --line:#262a33; --text:#e8eaf0; --muted:#8a90a0; --ok:#3ddc84; --warn:#ffb648; --accent:#6c8cff; }
+  :root { --bg:#0e0f12; --card:#16181d; --line:#262a33; --text:#e8eaf0; --muted:#8a90a0; --ok:#3ddc84; --warn:#ffb648; --bad:#ff6b6b; --accent:#6c8cff; }
   * { box-sizing:border-box }
   body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
-  main { max-width:720px; margin:0 auto; padding:48px 20px 80px; }
+  main { max-width:760px; margin:0 auto; padding:48px 20px 80px; }
   h1 { font-size:22px; margin:0 0 4px }
+  h2 { font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:28px 0 8px }
   .sub { color:var(--muted); margin:0 0 24px }
-  form { display:flex; gap:8px; flex-wrap:wrap }
-  input, select { flex:1 1 320px; background:var(--card); border:1px solid var(--line); color:var(--text); padding:12px 14px; border-radius:10px; font:inherit }
-  select { flex:0 0 160px }
+  form { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px }
+  input, select { flex:1 1 300px; background:var(--card); border:1px solid var(--line); color:var(--text); padding:12px 14px; border-radius:10px; font:inherit }
+  select { flex:0 0 170px }
   button { background:var(--accent); color:#fff; border:0; padding:12px 18px; border-radius:10px; font:inherit; font-weight:600; cursor:pointer }
   button:disabled { opacity:.5; cursor:default }
-  .status { color:var(--muted); margin:18px 0 }
+  .status { color:var(--muted); margin:14px 0 }
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:10px 0 }
   .card h3 { margin:0 0 4px; font-size:16px }
   .tag { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle }
   .tag.al { background:rgba(61,220,132,.15); color:var(--ok) }
   .tag.pub { background:rgba(255,182,72,.15); color:var(--warn) }
+  .tag.no { background:rgba(255,107,107,.15); color:var(--bad) }
   .meta { color:var(--muted); font-size:13px }
   a { color:var(--accent); text-decoration:none }
   details { margin-top:24px; color:var(--muted) }
-  details li { font-size:13px }
+  details li { font-size:13px; margin:3px 0 }
+  code { background:#0a0b0e; padding:1px 5px; border-radius:4px; font-size:12px }
+  .cat .count { color:var(--text); font-weight:600 }
+  .cat:not(.has) .list { display:none }
+  .cat.has .empty { display:none }
+  .cat[data-cat="gtd"] h2 { color:var(--ok) }
+  .cat[data-cat="fcfs"] h2 { color:var(--accent) }
+  .cat[data-cat="public"] h2 { color:var(--warn) }
 </style>
 </head>
 <body>
 <main>
   <h1>Mint Check</h1>
-  <p class="sub">Paste a wallet address. No connecting, no signing — it just asks OpenSea which open drops that address can mint right now.</p>
+  <p class="sub">Paste a wallet address. No connecting, no signing — it asks OpenSea's public API which open drops that address can mint right now.</p>
 
-  <form id="f">
-    <input id="addr" placeholder="0x…" autocomplete="off" spellcheck="false" required pattern="^0x[0-9a-fA-F]{40}$">
+  <form id="scan">
+    <input id="addr" placeholder="0x… wallet address" autocomplete="off" spellcheck="false" required pattern="^0x[0-9a-fA-F]{40}$">
     <select id="chains">
       <option value="">All chains</option>
       <option value="ethereum">Ethereum</option>
       <option value="base">Base</option>
       <option value="ethereum,base">Ethereum + Base</option>
     </select>
-    <button id="go" type="submit">Check</button>
+    <button id="go" type="submit">Scan calendar</button>
   </form>
 
+  <form id="one">
+    <input id="slug" placeholder="…or check one drop: paste an OpenSea collection URL or slug" autocomplete="off" spellcheck="false">
+    <button id="go1" type="submit">Check drop</button>
+  </form>
+  <p class="meta">The calendar scan covers what OpenSea lists as featured, upcoming, and recently minted. A live drop that's in none of those lists won't be found by the scan — check it directly with its URL.</p>
+
   <div class="status" id="status"></div>
+
+  <section id="cats" hidden>
+    <div class="cat" data-cat="gtd"><h2>GTD <span class="count"></span></h2><div class="list"></div><p class="empty meta">None</p></div>
+    <div class="cat" data-cat="fcfs"><h2>FCFS <span class="count"></span></h2><div class="list"></div><p class="empty meta">None</p></div>
+    <div class="cat" data-cat="public"><h2>Public <span class="count"></span></h2><div class="list"></div><p class="empty meta">None</p></div>
+    <div class="cat" data-cat="other"><h2>Other allowlist <span class="count"></span></h2><div class="list"></div><p class="empty meta">None</p></div>
+  </section>
   <div id="out"></div>
 </main>
 
 <script>
-const f = document.getElementById("f"), status = document.getElementById("status"), out = document.getElementById("out"), go = document.getElementById("go");
+const $ = (id) => document.getElementById(id);
+const status = $("status"), out = $("out");
+const CONCURRENCY = 4;
 const fmt = (ms) => ms ? new Date(ms).toLocaleString() : "";
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const eth = (wei) => { const n = Number(wei); return Number.isFinite(n) ? (n / 1e18).toString().replace(/(\.\d{0,6})\d+$/, "$1") + " ETH" : esc(wei); };
 
-const CONCURRENCY = 3;
+const stageLine = (s) => `${esc(s.label)}${s.type ? ` <code>${esc(s.type)}</code>` : ""}${s.price != null ? " · " + eth(s.price) : ""}${s.maxPerWallet != null ? " · max " + esc(s.maxPerWallet) + "/wallet" : ""}${s.allowlistCount != null ? " · " + esc(s.allowlistCount) + " allowlisted" : ""}${s.endTime ? " · ends " + esc(fmt(s.endTime)) : ""}`;
 
-function renderEligible(d) {
-  const stages = (d.stages || []).map((s) => `${esc(s.label)}${s.price != null ? " @ " + esc(typeof s.price === "object" ? JSON.stringify(s.price) : s.price) : ""}${s.maxPerWallet != null ? ", max " + esc(s.maxPerWallet) + "/wallet" : ""}${s.endTime ? ", ends " + esc(fmt(s.endTime)) : ""}`).join("<br>");
-  out.insertAdjacentHTML("beforeend", `
-    <div class="card">
-      <h3>${esc(d.name)}${d.chain ? ` <span class="meta">[${esc(d.chain)}]</span>` : ""}
-        <span class="tag ${d.looksPublic ? "pub" : "al"}">${d.looksPublic ? "public stage" : "allowlist"}</span></h3>
-      <div class="meta">${stages}${d.minted != null && d.max != null ? `<br>minted ${d.minted}/${d.max}` : ""}</div>
-      <div><a href="${esc(d.url)}" target="_blank" rel="noopener">Open on OpenSea →</a></div>
-    </div>`);
+function card(d) {
+  const ok = d.status === "eligible";
+  const tag = ok ? (d.looksPublic ? `<span class="tag pub">public stage</span>` : `<span class="tag al">allowlist</span>`) : `<span class="tag no">${esc(d.status.replace("_", " "))}</span>`;
+  const stages = (d.stages || []).map(stageLine).join("<br>");
+  const extra = d.status === "not_open" && d.nextStage ? `next: ${stageLine(d.nextStage)} · opens ${esc(fmt(d.nextStart))}` : d.status === "not_eligible" ? `OpenSea said: ${esc(d.reason)}` : d.status === "not_a_drop" ? "OpenSea has no drop for this slug" : "";
+  return `<div class="card"><h3>${esc(d.name)}${d.chain ? ` <span class="meta">[${esc(d.chain)}]</span>` : ""}${tag}</h3>
+    <div class="meta">${stages}${extra ? (stages ? "<br>" : "") + extra : ""}${d.minted != null && d.max != null ? `<br>minted ${d.minted}/${d.max}` : ""}</div>
+    <div><a href="${esc(d.url)}" target="_blank" rel="noopener">Open on OpenSea →</a></div></div>`;
+}
+
+// Which bucket does a stage belong to? Public is by type; GTD/FCFS by how creators label allowlist stages.
+function catOfStage(s) {
+  const label = String(s.label || "");
+  if (s.type === "public_sale" || /\bpublic\b/i.test(label)) return "public";
+  if (/\b(gtd|guaranteed|guarantee|wl\s*guaranteed|whitelist\s*guaranteed)\b/i.test(label)) return "gtd";
+  if (/\b(fcfs|first[\s-]*come|waitlist|wait\s*list|oversubscribed|allowlist\s*2|wl\s*2)\b/i.test(label)) return "fcfs";
+  return "other";
+}
+const catsOf = (d) => [...new Set((d.stages || []).map(catOfStage))];
+const CAT_NAMES = { gtd: "GTD", fcfs: "FCFS", public: "Public", other: "allowlist" };
+
+const counts = { gtd: 0, fcfs: 0, public: 0, other: 0 };
+function resetCats() {
+  for (const k in counts) counts[k] = 0;
+  document.querySelectorAll("#cats .cat").forEach((c) => { c.classList.remove("has"); c.querySelector(".list").innerHTML = ""; c.querySelector(".count").textContent = ""; });
+  $("cats").hidden = false;
+}
+function addToCats(d) {
+  for (const cat of catsOf(d)) {
+    const el = document.querySelector(`#cats .cat[data-cat="${cat}"]`);
+    el.classList.add("has");
+    el.querySelector(".list").insertAdjacentHTML("beforeend", card(d));
+    el.querySelector(".count").textContent = `(${++counts[cat]})`;
+  }
 }
 
 const reasonOf = (o) => o.status === "not_open" ? (o.nextStart ? "opens " + fmt(o.nextStart) : "no open stage")
   : o.status === "sold_out" ? "sold out"
-  : o.status === "not_eligible" ? "not eligible" + (o.reason ? " (" + esc(o.reason) + ")" : "")
+  : o.status === "not_eligible" ? `${catsOf(o).map((c) => CAT_NAMES[c]).join("/")} open but not eligible — ${esc(o.reason)}`
   : esc(o.reason || o.status);
 
-f.addEventListener("submit", async (e) => {
+async function checkOne(address, slug) {
+  const r = await fetch(`/api/check?address=${encodeURIComponent(address)}&slug=${encodeURIComponent(slug)}`);
+  return r.json();
+}
+
+$("scan").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const address = document.getElementById("addr").value.trim();
-  const chains = document.getElementById("chains").value;
-  out.innerHTML = ""; go.disabled = true;
+  const address = $("addr").value.trim(), chains = $("chains").value;
+  out.innerHTML = ""; resetCats(); $("go").disabled = true;
   status.textContent = "Loading OpenSea's drop calendar…";
   try {
     const r = await fetch(`/api/drops?chains=${encodeURIComponent(chains)}`);
     const cal = await r.json();
     if (!r.ok) throw new Error(cal.error || r.statusText);
-    if (cal.errors && cal.errors.length && !cal.drops.length) throw new Error("OpenSea returned: " + JSON.stringify(cal.errors[0]));
+    if (cal.errors?.length && !cal.drops.length) throw new Error("OpenSea returned: " + JSON.stringify(cal.errors[0]));
 
     const drops = cal.drops, others = [];
     let done = 0, hits = 0, i = 0;
-    const tick = () => { status.textContent = `Checked ${done}/${drops.length} drops — ${hits} mintable so far`; };
+    const tick = () => { status.textContent = `Checked ${done}/${drops.length} drops (${cal.counts.minting} marked live by OpenSea) — ${hits} mintable so far`; };
     tick();
-
     await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
       while (i < drops.length) {
         const d = drops[i++];
         try {
-          const rr = await fetch(`/api/check?address=${encodeURIComponent(address)}&slug=${encodeURIComponent(d.slug)}`);
-          const res = await rr.json();
-          if (res.status === "eligible") { hits++; renderEligible(res); } else others.push(res);
+          const res = await checkOne(address, d.slug);
+          if (res.status === "eligible") { hits++; addToCats(res); } else others.push(res);
         } catch (err) { others.push({ name: d.name, status: "error", reason: err.message }); }
         done++; tick();
       }
     }));
-
     status.textContent = `Checked ${drops.length} drops. ${hits ? hits + " mintable now." : "Nothing this address can mint right now."}`;
-    if (others.length) {
-      out.insertAdjacentHTML("beforeend", `<details><summary>${others.length} other drops (not open, sold out, or not eligible)</summary><ul>${others.map((o) => `<li>${esc(o.name || o.slug || "?")} — ${reasonOf(o)}</li>`).join("")}</ul></details>`);
-    }
+
+    const open = others.filter((o) => o.status === "not_eligible" || o.status === "error");
+    const rest = others.filter((o) => !open.includes(o));
+    if (open.length) out.insertAdjacentHTML("beforeend", `<details open><summary>${open.length} drops are open but this address can't mint (or the check failed)</summary><ul>${open.map((o) => `<li>${esc(o.name || o.slug)} — ${reasonOf(o)}</li>`).join("")}</ul></details>`);
+    if (rest.length) out.insertAdjacentHTML("beforeend", `<details><summary>${rest.length} drops not open or sold out</summary><ul>${rest.map((o) => `<li>${esc(o.name || o.slug)} — ${reasonOf(o)}</li>`).join("")}</ul></details>`);
   } catch (err) {
     status.textContent = "Error: " + err.message;
-  } finally { go.disabled = false; }
+  } finally { $("go").disabled = false; }
+});
+
+$("one").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const address = $("addr").value.trim();
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) { status.textContent = "Enter a wallet address first."; return; }
+  const raw = $("slug").value.trim();
+  const m = raw.match(/opensea\.io\/collection\/([a-z0-9._-]+)/i);
+  const slug = (m ? m[1] : raw).toLowerCase();
+  if (!slug) return;
+  $("go1").disabled = true; status.textContent = `Checking ${slug}…`;
+  try {
+    const res = await checkOne(address, slug);
+    if (res.error) throw new Error(res.error);
+    if ($("cats").hidden) resetCats();
+    if (res.status === "eligible") addToCats(res); else out.insertAdjacentHTML("afterbegin", card(res));
+    status.textContent = res.status === "eligible" ? "Eligible." : `Not mintable: ${res.status.replace("_", " ")}.`;
+  } catch (err) { status.textContent = "Error: " + err.message; }
+  finally { $("go1").disabled = false; }
 });
 </script>
 </body>

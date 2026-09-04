@@ -22,6 +22,7 @@ Or from a terminal:
 ## Notes
 
 - The key stays server-side in `api/check.js`; the browser never sees it.
-- `vercel.json` raises the function timeout to 60s (a full scan is 15–45s).
+- The page checks drops one at a time (`/api/drops` lists them, `/api/check?slug=` checks one) so no request runs long.
+- Debugging: open `/api/drops?debug=1` or `/api/check?address=0x...&slug=some-slug&debug=1` to see raw OpenSea responses.
 - Optional: in Vercel → Settings → Deployment Protection, turn on
   "Vercel Authentication" so only you can open the page.

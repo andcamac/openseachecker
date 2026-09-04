@@ -53,30 +53,56 @@ const f = document.getElementById("f"), status = document.getElementById("status
 const fmt = (ms) => ms ? new Date(ms).toLocaleString() : "";
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
 
+const CONCURRENCY = 3;
+
+function renderEligible(d) {
+  const stages = (d.stages || []).map((s) => `${esc(s.label)}${s.price != null ? " @ " + esc(typeof s.price === "object" ? JSON.stringify(s.price) : s.price) : ""}${s.maxPerWallet != null ? ", max " + esc(s.maxPerWallet) + "/wallet" : ""}${s.endTime ? ", ends " + esc(fmt(s.endTime)) : ""}`).join("<br>");
+  out.insertAdjacentHTML("beforeend", `
+    <div class="card">
+      <h3>${esc(d.name)}${d.chain ? ` <span class="meta">[${esc(d.chain)}]</span>` : ""}
+        <span class="tag ${d.looksPublic ? "pub" : "al"}">${d.looksPublic ? "public stage" : "allowlist"}</span></h3>
+      <div class="meta">${stages}${d.minted != null && d.max != null ? `<br>minted ${d.minted}/${d.max}` : ""}</div>
+      <div><a href="${esc(d.url)}" target="_blank" rel="noopener">Open on OpenSea →</a></div>
+    </div>`);
+}
+
+const reasonOf = (o) => o.status === "not_open" ? (o.nextStart ? "opens " + fmt(o.nextStart) : "no open stage")
+  : o.status === "sold_out" ? "sold out"
+  : o.status === "not_eligible" ? "not eligible" + (o.reason ? " (" + esc(o.reason) + ")" : "")
+  : esc(o.reason || o.status);
+
 f.addEventListener("submit", async (e) => {
   e.preventDefault();
   const address = document.getElementById("addr").value.trim();
   const chains = document.getElementById("chains").value;
   out.innerHTML = ""; go.disabled = true;
-  status.textContent = "Scanning OpenSea's drop calendar… this takes 15–45 seconds.";
+  status.textContent = "Loading OpenSea's drop calendar…";
   try {
-    const r = await fetch(`/api/check?address=${encodeURIComponent(address)}&chains=${encodeURIComponent(chains)}`);
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || r.statusText);
-    status.textContent = `Scanned ${data.scanned} drops. ${data.eligible.length ? data.eligible.length + " mintable now." : "Nothing this address can mint right now."}`;
-    for (const d of data.eligible) {
-      const stages = d.stages.map((s) => `${esc(s.label)}${s.price != null ? " @ " + esc(typeof s.price === "object" ? JSON.stringify(s.price) : s.price) : ""}${s.maxPerWallet != null ? ", max " + esc(s.maxPerWallet) + "/wallet" : ""}${s.endTime ? ", ends " + esc(fmt(s.endTime)) : ""}`).join("<br>");
-      out.insertAdjacentHTML("beforeend", `
-        <div class="card">
-          <h3>${esc(d.name)}${d.chain ? ` <span class="meta">[${esc(d.chain)}]</span>` : ""}
-            <span class="tag ${d.looksPublic ? "pub" : "al"}">${d.looksPublic ? "public stage" : "allowlist"}</span></h3>
-          <div class="meta">${stages}${d.minted != null && d.max != null ? `<br>minted ${d.minted}/${d.max}` : ""}</div>
-          <div><a href="${esc(d.url)}" target="_blank" rel="noopener">Open on OpenSea →</a></div>
-        </div>`);
-    }
-    if (data.others.length) {
-      const reason = (o) => o.status === "not_open" ? (o.nextStart ? "opens " + fmt(o.nextStart) : "no open stage") : o.status === "sold_out" ? "sold out" : o.status === "not_eligible" ? "not eligible" + (o.reason ? " (" + esc(o.reason) + ")" : "") : esc(o.reason || o.status);
-      out.insertAdjacentHTML("beforeend", `<details><summary>${data.others.length} other drops (not open, sold out, or not eligible)</summary><ul>${data.others.map((o) => `<li>${esc(o.name)} — ${reason(o)}</li>`).join("")}</ul></details>`);
+    const r = await fetch(`/api/drops?chains=${encodeURIComponent(chains)}`);
+    const cal = await r.json();
+    if (!r.ok) throw new Error(cal.error || r.statusText);
+    if (cal.errors && cal.errors.length && !cal.drops.length) throw new Error("OpenSea returned: " + JSON.stringify(cal.errors[0]));
+
+    const drops = cal.drops, others = [];
+    let done = 0, hits = 0, i = 0;
+    const tick = () => { status.textContent = `Checked ${done}/${drops.length} drops — ${hits} mintable so far`; };
+    tick();
+
+    await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
+      while (i < drops.length) {
+        const d = drops[i++];
+        try {
+          const rr = await fetch(`/api/check?address=${encodeURIComponent(address)}&slug=${encodeURIComponent(d.slug)}`);
+          const res = await rr.json();
+          if (res.status === "eligible") { hits++; renderEligible(res); } else others.push(res);
+        } catch (err) { others.push({ name: d.name, status: "error", reason: err.message }); }
+        done++; tick();
+      }
+    }));
+
+    status.textContent = `Checked ${drops.length} drops. ${hits ? hits + " mintable now." : "Nothing this address can mint right now."}`;
+    if (others.length) {
+      out.insertAdjacentHTML("beforeend", `<details><summary>${others.length} other drops (not open, sold out, or not eligible)</summary><ul>${others.map((o) => `<li>${esc(o.name || o.slug || "?")} — ${reasonOf(o)}</li>`).join("")}</ul></details>`);
     }
   } catch (err) {
     status.textContent = "Error: " + err.message;

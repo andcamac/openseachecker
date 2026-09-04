@@ -1,5 +1,5 @@
 {
   "functions": {
-    "api/check.js": { "maxDuration": 60 }
+    "api/*.js": { "maxDuration": 30 }
   }
 }

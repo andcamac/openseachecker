@@ -32,6 +32,18 @@ enable Vercel Authentication, so only your login can run scans on your API key.
 - The page loops through the calendar 4 at a time, renders hits as they land, runs live
   countdowns, and re-checks a drop automatically the moment its next phase opens.
 
+## Mint calendar
+
+Its own collapsible widget: every phase OpenSea has scheduled that hasn't started yet,
+in chronological order, grouped by day, with live countdowns. OpenSea's drops API has no
+date-range parameter — there is no "next N days" option to ask for — so the calendar shows
+the entire horizon the API returns and reports how many days that turned out to be
+(typically 2-4 weeks). The 7D / 30D / ALL pills narrow the view locally.
+
+Phases on a list this address is confirmed on are highlighted orange and marked
+"YOU'RE ON THIS LIST"; **MINE ONLY** filters down to just those. Public phases are never
+marked as yours — anyone can mint those.
+
 ## Reading the UI
 
 - **Orange** = an allowlist stage this address can mint, confirmed by OpenSea.

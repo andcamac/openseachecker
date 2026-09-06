@@ -42,10 +42,18 @@ button:disabled{opacity:.45;cursor:default}
 .panel h2 .toggle{margin-left:auto;background:var(--card);border:0;color:var(--muted);font:inherit;font-size:10px;letter-spacing:.1em;padding:6px 12px;border-radius:999px;cursor:pointer}
 .panel h2 .toggle:hover{color:var(--text)}
 .panel.folded .chips,.panel.folded .tl{display:none}
+.calctl{margin-left:auto;display:flex;gap:6px;align-items:center;background:none!important;padding:0!important}
+.pill{background:var(--card);border:0;color:var(--muted);font:inherit;font-size:10px;letter-spacing:.08em;padding:6px 11px;border-radius:999px;cursor:pointer}
+.pill.on{background:var(--soft);color:#13140e}
+.pill#calmine.on{background:var(--orange);color:#fff}
 /* upcoming phase timeline */
 .tl{margin-top:12px;display:flex;flex-direction:column;gap:2px}
 .tl .row{display:grid;grid-template-columns:78px 92px 1fr auto;gap:10px;align-items:center;padding:7px 10px;border-radius:8px;background:var(--card);font-size:11px}
 .tl .row.soon{background:#2a2b26}
+.tl .row.mine{background:#2a1a0e;box-shadow:inset 0 0 0 1px var(--orange)}
+.tl .row.mine .nm{color:var(--text)}
+.tl .row.mine .you{color:var(--orange);font-weight:700}
+.tl .empty2{color:var(--muted);padding:14px 2px;font-size:11px}
 .tl .when{color:var(--soft);font-weight:700}
 .tl .ph{font-weight:700;font-size:10px;letter-spacing:.08em;padding:3px 8px;border-radius:5px;background:var(--chip);color:var(--muted);text-align:center}
 .tl .ph.pub{background:var(--soft);color:#13140e}
@@ -153,6 +161,17 @@ button:disabled{opacity:.45;cursor:default}
     <h2><span>Your eligibility</span><em id="elig">Paste an address and hit scan. Nothing is sent to your wallet — this only reads OpenSea's public API.</em>
       <button class="toggle" id="fold" type="button">HIDE ▲</button></h2>
     <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="panel" id="calpanel" hidden>
+    <h2><span>Mint calendar</span><em id="calmeta">every phase OpenSea has scheduled</em>
+      <span class="calctl">
+        <button class="pill" id="calmine" type="button">MINE ONLY</button>
+        <button class="pill on" data-h="0" type="button">ALL</button>
+        <button class="pill" data-h="7" type="button">7D</button>
+        <button class="pill" data-h="30" type="button">30D</button>
+        <button class="toggle" id="calfold" type="button">HIDE &#9650;</button>
+      </span></h2>
     <div class="tl" id="timeline"></div>
   </div>
 
@@ -406,42 +425,70 @@ function renderChips() {
 }
 
 // Every phase that hasn't started yet, across all drops, in chronological order.
+// OpenSea's drops API has no date-range parameter — you get whatever it has scheduled —
+// so this shows the full horizon it returns, and says how many days that turned out to be.
+let CAL_HORIZON = 0;   // days; 0 = everything the API gave us
+let CAL_MINE = false;
+
+// A phase is "yours" when we have confirmed this address on one of that drop's
+// allowlist stages — right now, or on an earlier visit. Public phases are never "yours".
+function dropIsMine(d) {
+  if (d.status === "eligible" && !d.looksPublic) return true;
+  if (String(d.status) === "allowlist_unfunded") return true;
+  return !!wasEligible(d.slug);
+}
+
 function renderTimeline() {
   const now = Date.now();
-  const rows = [];
+  const all = [];
   for (const d of ROWS.values()) {
+    const mine = dropIsMine(d);
     for (const st of (d.futureStages || d.allStages || [])) {
       if (!st.startTime || st.startTime <= now) continue;
-      rows.push({ d, st, cat: catOf(st) });
+      const cat = catOf(st);
+      all.push({ d, st, cat, mine: mine && cat !== "PUBLIC" });
     }
   }
-  rows.sort((a, b) => a.st.startTime - b.st.startTime);
-  const top = rows.slice(0, 14);
-  if (!top.length) { $("timeline").innerHTML = ""; return; }
+  all.sort((a, b) => a.st.startTime - b.st.startTime);
+
+  if (!all.length) { $("calpanel").hidden = true; return; }
+  $("calpanel").hidden = false;
+
+  const spanDays = Math.ceil((all[all.length - 1].st.startTime - now) / 86400000);
+  const cutoff = CAL_HORIZON ? now + CAL_HORIZON * 86400000 : Infinity;
+  const rows = all.filter((r) => r.st.startTime <= cutoff && (!CAL_MINE || r.mine));
+  const mineCount = all.filter((r) => r.mine).length;
+
+  $("calmeta").innerHTML = `${all.length} scheduled phases across the next <b style="color:var(--soft)">${spanDays} day${spanDays === 1 ? "" : "s"}</b> — everything OpenSea's calendar returns`
+    + (mineCount ? ` · <b style="color:var(--orange)">${mineCount} on a list you're on</b>` : "");
+
+  if (!rows.length) { $("timeline").innerHTML = `<div class="empty2">${CAL_MINE ? "No upcoming phases on lists this address is confirmed on." : "Nothing scheduled in this window."}</div>`; return; }
 
   let lastDay = "";
   const out = [];
-  for (const r of top) {
-    const day = new Date(r.st.startTime).toDateString();
+  for (const r of rows) {
+    const t = new Date(r.st.startTime);
+    const day = t.toDateString();
     if (day !== lastDay) {
       lastDay = day;
-      const t = new Date(r.st.startTime), td = new Date();
-      const isToday = t.toDateString() === td.toDateString();
-      out.push(`<div class="day">${isToday ? "Today" : esc(t.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }))}</div>`);
+      const today = new Date().toDateString();
+      const tm = new Date(Date.now() + 86400000).toDateString();
+      out.push(`<div class="day">${day === today ? "Today" : day === tm ? "Tomorrow" : esc(t.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }))}</div>`);
     }
     const soon = r.st.startTime - now < 3600000;
     const pub = r.cat === "PUBLIC";
     const price = r.st.price != null ? eth(r.st.price) : "";
-    const per = r.st.maxPerWallet != null ? ` ×${esc(r.st.maxPerWallet)}` : "";
-    const al = r.st.allowlistCount != null ? ` · ${esc(r.st.allowlistCount)} wallets` : "";
-    out.push(`<a class="row${soon ? " soon" : ""}" href="${esc(r.d.url)}" target="_blank" rel="noopener">
+    const per = r.st.maxPerWallet != null ? ` \u00d7${esc(r.st.maxPerWallet)}` : "";
+    const al = r.st.allowlistCount != null ? ` \u00b7 ${esc(r.st.allowlistCount)} wallets` : "";
+    const tail = r.mine ? `<span class="you">\u2714 YOU'RE ON THIS LIST</span>` : pub ? "anyone" : "? checks at open";
+    out.push(`<a class="row${r.mine ? " mine" : soon ? " soon" : ""}" href="${esc(r.d.url)}" target="_blank" rel="noopener">
       <span class="when" data-at="${r.st.startTime}">${countdown(r.st.startTime)}</span>
       <span class="ph ${pub ? "pub" : "al"}">${esc(r.cat)}</span>
       <span class="nm">${esc(r.d.name)} <span class="meta2">${esc(price)}${per}${al}</span></span>
-      <span class="meta2">${pub ? "anyone" : "? checks at open"}</span>
+      <span class="meta2">${tail}</span>
     </a>`);
   }
-  $("timeline").innerHTML = `<div class="day" style="margin-top:14px">Upcoming phases (${rows.length})</div>` + out.join("");
+  $("timeline").innerHTML = out.join("");
 }
 
 /* ---------- holdings: did this wallet actually get one? ---------- */
@@ -577,6 +624,21 @@ for (const t of document.querySelectorAll(".tab")) t.addEventListener("click", (
   for (const o of document.querySelectorAll(".tab")) o.classList.toggle("on", o === t);
   FILTER = t.dataset.f; render();
 });
+$("calfold").addEventListener("click", () => {
+  const folded = $("calpanel").classList.toggle("folded");
+  $("calfold").innerHTML = folded ? "SHOW &#9660;" : "HIDE &#9650;";
+  try { localStorage.setItem("mintradar:calfolded", folded ? "1" : ""); } catch {}
+});
+try { if (localStorage.getItem("mintradar:calfolded")) { $("calpanel").classList.add("folded"); $("calfold").innerHTML = "SHOW &#9660;"; } } catch {}
+
+for (const b of document.querySelectorAll(".pill[data-h]")) b.addEventListener("click", () => {
+  for (const o of document.querySelectorAll(".pill[data-h]")) o.classList.toggle("on", o === b);
+  CAL_HORIZON = Number(b.dataset.h); renderTimeline();
+});
+$("calmine").addEventListener("click", () => {
+  CAL_MINE = !CAL_MINE; $("calmine").classList.toggle("on", CAL_MINE); renderTimeline();
+});
+
 $("fold").addEventListener("click", () => {
   const folded = $("panel").classList.toggle("folded");
   $("fold").textContent = folded ? "SHOW ▼" : "HIDE ▲";

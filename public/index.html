@@ -3,192 +3,450 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mint Check</title>
+<title>Mint Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0e0f12; --card:#16181d; --line:#262a33; --text:#e8eaf0; --muted:#8a90a0; --ok:#3ddc84; --warn:#ffb648; --bad:#ff6b6b; --accent:#6c8cff; }
-  * { box-sizing:border-box }
-  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
-  main { max-width:760px; margin:0 auto; padding:48px 20px 80px; }
-  h1 { font-size:22px; margin:0 0 4px }
-  h2 { font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:28px 0 8px }
-  .sub { color:var(--muted); margin:0 0 24px }
-  form { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px }
-  input, select { flex:1 1 300px; background:var(--card); border:1px solid var(--line); color:var(--text); padding:12px 14px; border-radius:10px; font:inherit }
-  select { flex:0 0 170px }
-  button { background:var(--accent); color:#fff; border:0; padding:12px 18px; border-radius:10px; font:inherit; font-weight:600; cursor:pointer }
-  button:disabled { opacity:.5; cursor:default }
-  .status { color:var(--muted); margin:14px 0 }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:10px 0 }
-  .card h3 { margin:0 0 4px; font-size:16px }
-  .tag { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle }
-  .tag.al { background:rgba(61,220,132,.15); color:var(--ok) }
-  .tag.pub { background:rgba(255,182,72,.15); color:var(--warn) }
-  .tag.no { background:rgba(255,107,107,.15); color:var(--bad) }
-  .tag.warn { background:rgba(255,182,72,.12); color:var(--warn); border:1px dashed rgba(255,182,72,.4) }
-  .meta { color:var(--muted); font-size:13px }
-  a { color:var(--accent); text-decoration:none }
-  details { margin-top:24px; color:var(--muted) }
-  details li { font-size:13px; margin:3px 0 }
-  code { background:#0a0b0e; padding:1px 5px; border-radius:4px; font-size:12px }
-  .cat .count { color:var(--text); font-weight:600 }
-  .cat:not(.has) .list { display:none }
-  .cat.has .empty { display:none }
-  .cat[data-cat="gtd"] h2 { color:var(--ok) }
-  .cat[data-cat="fcfs"] h2 { color:var(--accent) }
-  .cat[data-cat="public"] h2 { color:var(--warn) }
+:root{
+  --bg:#13140e; --panel:#363732; --card:#1f201a; --chip:#43443f;
+  --text:#ffffff; --soft:#e2e2e2; --muted:#7b7b78; --dim:#5a5b56;
+  --orange:#ff6002;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:12px/1.45 "Space Mono",ui-monospace,Menlo,Consolas,monospace}
+.wrap{max-width:1400px;margin:0 auto;padding:18px 20px 60px}
+a{color:inherit;text-decoration:none}
+
+/* header */
+.top{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.brand{font-weight:700;letter-spacing:.06em;font-size:15px;display:flex;align-items:center;gap:10px}
+.brand b{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--orange);color:#fff;font-size:16px}
+.forms{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+form{display:flex;gap:8px}
+input,select{background:var(--panel);border:1px solid var(--chip);color:var(--text);padding:11px 14px;border-radius:10px;font:inherit;outline:none}
+input:focus{border-color:var(--orange)}
+input#addr{width:min(46vw,430px)}
+input#slug{width:min(34vw,280px)}
+input::placeholder{color:var(--dim)}
+button{background:var(--orange);color:#fff;border:0;padding:11px 18px;border-radius:10px;font:inherit;font-weight:700;letter-spacing:.06em;cursor:pointer}
+button.ghost{background:var(--panel);border:1px solid var(--chip)}
+button:disabled{opacity:.45;cursor:default}
+
+/* eligibility panel */
+.panel{background:var(--panel);border-radius:16px;padding:14px 16px;margin-bottom:12px}
+.panel h2{margin:0;font-size:11px;letter-spacing:.1em;text-transform:uppercase;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.panel h2 span{background:var(--card);padding:6px 12px;border-radius:999px;font-weight:700}
+.panel h2 em{color:var(--muted);font-style:normal;font-weight:400;letter-spacing:0;text-transform:none}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.chips:empty{display:none}
+.chip{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--orange);border-radius:12px;padding:8px 12px}
+.chip img{width:36px;height:36px;border-radius:8px;object-fit:cover;background:var(--chip)}
+.chip .n{font-weight:700}
+.chip .s{color:var(--orange);font-size:11px}
+.chip .s i{color:var(--muted);font-style:normal}
+.chip.pub{border-color:var(--chip)}.chip.pub .s{color:var(--soft)}
+.chip.q{border-color:transparent;background:#2a2b26}.chip.q .s{color:var(--muted)}
+
+/* filter bar */
+.bar{display:flex;gap:8px;align-items:center;margin:12px 0 8px;flex-wrap:wrap}
+.tab{background:var(--panel);border:0;border-radius:999px;padding:7px 14px;color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.06em;cursor:pointer}
+.tab b{margin-left:6px;color:var(--text)}
+.tab.on{background:var(--soft);color:#13140e}.tab.on b{color:#13140e}
+.tab.acc{color:var(--orange)}.tab.acc.on{background:var(--orange);color:#fff}.tab.acc.on b{color:#fff}
+.tog{margin-left:auto;display:flex;gap:8px;align-items:center;color:var(--muted);font-size:11px;letter-spacing:.06em;cursor:pointer;user-select:none}
+.sw{width:38px;height:20px;border-radius:10px;background:var(--chip);position:relative;transition:background .15s}
+.sw:after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:7px;background:var(--muted);transition:transform .15s,background .15s}
+.tog.on .sw{background:#4a2a12}.tog.on .sw:after{transform:translateX(18px);background:var(--orange)}
+
+/* progress / status line */
+.status{color:var(--muted);margin:10px 0;min-height:18px}
+.pbar{height:3px;background:var(--card);border-radius:2px;overflow:hidden;margin:6px 0 2px}
+.pbar i{display:block;height:100%;background:var(--orange);width:0;transition:width .2s}
+
+/* chain group */
+.chain{display:flex;align-items:center;gap:10px;margin:20px 0 8px;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.chain b{background:var(--panel);color:var(--text);padding:4px 10px;border-radius:999px}
+.chain span{margin-left:auto}
+
+/* cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.card{background:var(--panel);border-radius:16px;border:1px solid transparent;display:flex;flex-direction:column}
+.card.you{border-color:var(--orange)}
+.ch{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 12px 6px}
+.ch .t{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{font-size:9px;font-weight:700;letter-spacing:.1em;padding:4px 8px;border-radius:6px;white-space:nowrap}
+.badge.g{background:var(--orange);color:#fff}
+.badge.y{background:var(--soft);color:#13140e}
+.badge.d{background:var(--chip);color:var(--muted)}
+.body{display:flex;gap:10px;padding:4px 12px 10px}
+.body .thumb{width:64px;height:64px;border-radius:10px;object-fit:cover;background:var(--card);flex:0 0 auto}
+.stats{flex:1;min-width:0}
+.sup{font-weight:700;font-size:16px}
+.sup small{color:var(--muted);font-weight:400;font-size:10px}
+.sup .left{float:right;font-size:10px;color:var(--muted);font-weight:700;margin-top:4px}
+.prog{height:5px;background:var(--card);border-radius:3px;margin:4px 0 6px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--orange)}
+.lbl{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.cd{font-weight:700;font-size:18px;color:var(--soft)}
+.cd.live{color:var(--orange)}
+.stages{display:flex;background:var(--card);margin:0 8px;border-radius:10px;overflow:hidden}
+.st{flex:1;min-width:0;padding:7px 6px;border-right:1px solid var(--panel);font-size:10px;text-align:center;color:var(--dim)}
+.st:last-child{border-right:0}
+.st b{display:block;font-size:10px;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis}
+.st small{display:block;font-size:9px;margin-top:2px;color:var(--dim)}
+.st.ok{background:var(--orange)}.st.ok b,.st.ok small{color:#fff}
+.st.pubs b{color:var(--soft)}.st.pubs small{color:var(--muted)}
+.st.pubs.live{background:var(--soft)}.st.pubs.live b{color:#13140e}.st.pubs.live small{color:#4a4b46}
+.st.no b{color:var(--dim);text-decoration:line-through}
+.st.q b{color:var(--muted)}
+.foot{display:flex;padding:8px;gap:8px;margin-top:auto}
+.foot a,.foot button{flex:1;padding:8px 10px;font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text);background:var(--card);border:0;border-radius:8px;text-align:center;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.foot a.pri{background:#13140e;color:var(--orange)}
+
+.legend{display:flex;gap:16px;margin-top:18px;color:var(--muted);font-size:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.note{color:var(--dim);font-size:10px;margin-top:10px;line-height:1.6}
+.empty{color:var(--muted);padding:20px 0}
 </style>
 </head>
 <body>
-<main>
-  <h1>Mint Check</h1>
-  <p class="sub">Paste a wallet address. No connecting, no signing — it asks OpenSea's public API which open drops that address can mint right now.</p>
+<div class="wrap">
 
-  <form id="scan">
-    <input id="addr" placeholder="0x… wallet address" autocomplete="off" spellcheck="false" required pattern="^0x[0-9a-fA-F]{40}$">
-    <select id="chains">
-      <option value="">All chains</option>
-      <option value="ethereum">Ethereum</option>
-      <option value="base">Base</option>
-      <option value="ethereum,base">Ethereum + Base</option>
-    </select>
-    <button id="go" type="submit">Scan calendar</button>
-  </form>
+  <div class="top">
+    <div class="brand"><b>◈</b>MINT RADAR</div>
+    <div class="forms">
+      <form id="scan">
+        <input id="addr" placeholder="0x… wallet address — no connect, no signing" autocomplete="off" spellcheck="false" required pattern="^0x[0-9a-fA-F]{40}$">
+        <select id="chains">
+          <option value="">All chains</option>
+          <option value="ethereum">Ethereum</option>
+          <option value="base">Base</option>
+          <option value="ethereum,base">ETH + Base</option>
+        </select>
+        <button id="go" type="submit">SCAN</button>
+      </form>
+      <form id="one">
+        <input id="slug" placeholder="or one drop: OpenSea URL / slug" autocomplete="off" spellcheck="false">
+        <button id="go1" class="ghost" type="submit">CHECK</button>
+      </form>
+    </div>
+  </div>
 
-  <form id="one">
-    <input id="slug" placeholder="…or check one drop: paste an OpenSea collection URL or slug" autocomplete="off" spellcheck="false">
-    <button id="go1" type="submit">Check drop</button>
-  </form>
-  <p class="meta">The calendar scan covers what OpenSea lists as featured, upcoming, and recently minted. A live drop that's in none of those lists won't be found by the scan — check it directly with its URL. OpenSea also refuses to build a mint for a wallet that can't pay the price + gas on that chain — those show as "wallet needs funds", not as ineligible.</p>
+  <div class="panel">
+    <h2><span>Your eligibility</span><em id="elig">Paste an address and hit scan. Nothing is sent to your wallet — this only reads OpenSea's public API.</em></h2>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="bar" id="bar" hidden>
+    <button class="tab on" data-f="all">ALL <b>0</b></button>
+    <button class="tab acc" data-f="eligible">ELIGIBLE NOW <b>0</b></button>
+    <button class="tab" data-f="public">PUBLIC OPEN <b>0</b></button>
+    <button class="tab" data-f="upcoming">UPCOMING <b>0</b></button>
+    <div class="tog" id="hide"><span>HIDE DROPS I CAN'T MINT</span><div class="sw"></div></div>
+  </div>
 
   <div class="status" id="status"></div>
+  <div class="pbar" id="pbar" hidden><i></i></div>
 
-  <section id="cats" hidden>
-    <div class="cat" data-cat="gtd"><h2>GTD <span class="count"></span></h2><div class="list"></div><p class="empty meta">None</p></div>
-    <div class="cat" data-cat="fcfs"><h2>FCFS <span class="count"></span></h2><div class="list"></div><p class="empty meta">None</p></div>
-    <div class="cat" data-cat="public"><h2>Public <span class="count"></span></h2><div class="list"></div><p class="empty meta">None</p></div>
-    <div class="cat" data-cat="other"><h2>Other allowlist <span class="count"></span></h2><div class="list"></div><p class="empty meta">None</p></div>
-  </section>
   <div id="out"></div>
-</main>
+
+  <div class="legend" id="legend" hidden>
+    <span><i style="background:var(--orange)"></i>Stage this address can mint — confirmed by OpenSea</span>
+    <span><i style="background:var(--soft)"></i>Public stage — open to anyone</span>
+    <span><i style="background:var(--dim)"></i>Closed or not eligible</span>
+    <span><i style="background:var(--chip)"></i>Not open yet — rechecked automatically when it opens</span>
+  </div>
+  <p class="note" id="note" hidden>
+    OpenSea can only confirm eligibility for a stage that is currently open, so future allowlist phases show “?” until they start — this page re-checks each drop the moment one of its phases opens, so leave the tab open.<br>
+    A drop that is live but not on OpenSea's featured / upcoming / recently-minted calendar won't appear in a scan — paste its URL in the CHECK box.
+  </p>
+</div>
 
 <script>
+"use strict";
 const $ = (id) => document.getElementById(id);
-const status = $("status"), out = $("out");
-const CONCURRENCY = 4;
-const fmt = (ms) => ms ? new Date(ms).toLocaleString() : "";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
-const eth = (wei) => { const n = Number(wei); return Number.isFinite(n) ? (n / 1e18).toString().replace(/(\.\d{0,6})\d+$/, "$1") + " ETH" : esc(wei); };
+const CONCURRENCY = 4;
 
-const stageLine = (s) => `${esc(s.label)}${s.type ? ` <code>${esc(s.type)}</code>` : ""}${s.price != null ? " · " + eth(s.price) : ""}${s.maxPerWallet != null ? " · max " + esc(s.maxPerWallet) + "/wallet" : ""}${s.allowlistCount != null ? " · " + esc(s.allowlistCount) + " allowlisted" : ""}${s.endTime ? " · ends " + esc(fmt(s.endTime)) : ""}`;
+/* ---------- formatting ---------- */
+const eth = (wei) => {
+  const n = Number(wei);
+  if (!Number.isFinite(n)) return String(wei);
+  if (n === 0) return "FREE";
+  const v = n / 1e18;
+  // Keep enough decimals that a nonzero price never renders as "0".
+  let out = v.toFixed(Math.min(18, Math.max(3, Math.ceil(-Math.log10(v)) + 2)));
+  out = out.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+  return out;
+};
+const stamp = (ms) => { const d = new Date(ms); const p = (n) => String(n).padStart(2, "0"); return `${p(d.getDate())}.${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+function countdown(ms) {
+  let s = Math.max(0, Math.floor((ms - Date.now()) / 1000));
+  const d = Math.floor(s / 86400); s -= d * 86400;
+  const h = Math.floor(s / 3600); s -= h * 3600;
+  const m = Math.floor(s / 60); s -= m * 60;
+  const p = (n) => String(n).padStart(2, "0");
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${p(m)}m`;
+  return `${m}m ${p(s)}s`;
+}
+
+/* ---------- stage classification ---------- */
+// OpenSea only types stages as public_sale / signed_presale; GTD vs FCFS lives in the creator's label.
+function catOf(s) {
+  const l = String(s.label || "");
+  if (s.type === "public_sale" || /\bpublic\b/i.test(l)) return "PUBLIC";
+  if (/\b(gtd|guaranteed|guarantee)\b/i.test(l)) return "GTD";
+  if (/\b(fcfs|first[\s-]*come|waitlist|wait\s*list|oversubscribed|wl\s*2|allowlist\s*2)\b/i.test(l)) return "FCFS";
+  if (/\b(team|creator|reserve|founder)\b/i.test(l)) return "TEAM";
+  if (/\b(wl|whitelist|allowlist|presale)\b/i.test(l)) return "WL";
+  return l.toUpperCase().slice(0, 10) || "STAGE";
+}
+const isOpenNow = (s, now) => (s.startTime == null || s.startTime <= now) && (s.endTime == null || s.endTime > now);
+const isPast = (s, now) => s.endTime != null && s.endTime <= now;
+
+/* ---------- state ---------- */
+let ADDRESS = "";
+let ROWS = new Map();      // slug -> result from /api/check
+let FILTER = "all";
+let HIDE = false;
+let TICKER = null;
+const RECHECK = new Map(); // slug -> timestamp we should re-check at
+
+/* ---------- rendering ---------- */
+function stageCell(s, d, now) {
+  const cat = catOf(s);
+  const price = s.price != null ? " " + eth(s.price) : "";
+  const per = s.maxPerWallet != null ? ` ×${esc(s.maxPerWallet)}` : "";
+  const head = `<b>${esc(cat)}${esc(price)}${per}</b>`;
+  const eligibleHere = d.status === "eligible" && (d.openStages || []).some((o) => o.label === s.label && o.startTime === s.startTime);
+
+  if (eligibleHere && cat !== "PUBLIC") return `<div class="st ok">${head}<small>✔ you can mint</small></div>`;
+  if (isPast(s, now)) return `<div class="st no">${head}<small>closed</small></div>`;
+  if (isOpenNow(s, now)) {
+    if (cat === "PUBLIC") return `<div class="st pubs live">${head}<small>live · anyone</small></div>`;
+    if (d.status === "not_eligible") return `<div class="st no">${head}<small>✘ not on list</small></div>`;
+    if (String(d.status).endsWith("unfunded")) return `<div class="st q">${head}<small>needs funds</small></div>`;
+    return `<div class="st q">${head}<small>live</small></div>`;
+  }
+  const when = s.startTime ? stamp(s.startTime) : "";
+  return `<div class="st q">${head}<small>${cat === "PUBLIC" ? esc(when) : "? " + esc(when)}</small></div>`;
+}
+
+function badgeOf(d) {
+  if (d.status === "eligible") return d.looksPublic ? `<span class="badge y">PUBLIC</span>` : `<span class="badge g">YOU'RE IN</span>`;
+  if (String(d.status).endsWith("unfunded")) return `<span class="badge d">NEEDS FUNDS</span>`;
+  if (d.status === "not_eligible") return `<span class="badge d">NOT ON LIST</span>`;
+  if (d.status === "limit_reached") return `<span class="badge d">LIMIT HIT</span>`;
+  if (d.status === "sold_out") return `<span class="badge d">SOLD OUT</span>`;
+  if (d.status === "not_open") return `<span class="badge d">PENDING</span>`;
+  return `<span class="badge d">${esc(String(d.status).replace(/_/g, " ").toUpperCase())}</span>`;
+}
+
+// The headline countdown: the closing of a stage you can use, else the next stage to open.
+function headline(d, now) {
+  const open = (d.openStages || []).filter((s) => isOpenNow(s, now));
+  const closing = open.filter((s) => s.endTime).sort((a, b) => a.endTime - b.endTime)[0];
+  if (closing && (d.status === "eligible" || d.looksPublic)) return { label: `${catOf(closing)} ends in`, at: closing.endTime, live: true };
+  const next = (d.allStages || []).filter((s) => s.startTime && s.startTime > now).sort((a, b) => a.startTime - b.startTime)[0];
+  if (next) return { label: `${catOf(next)} opens in`, at: next.startTime, live: false };
+  if (closing) return { label: `${catOf(closing)} ends in`, at: closing.endTime, live: true };
+  return null;
+}
 
 function card(d) {
-  const TAGS = {
-    eligible: d.looksPublic ? `<span class="tag pub">public · mintable</span>` : `<span class="tag al">allowlisted · mintable</span>`,
-    eligible_unfunded: `<span class="tag pub">public</span><span class="tag warn">wallet needs funds on ${esc(d.chain || "this chain")}</span>`,
-    allowlist_unfunded: `<span class="tag al">allowlist?</span><span class="tag warn">wallet needs funds — can't confirm allowlist until funded</span>`,
-    limit_reached: `<span class="tag no">per-wallet limit reached</span>`,
-    public_error: `<span class="tag pub">public</span><span class="tag no">OpenSea couldn't build tx</span>`,
+  const now = Date.now();
+  const you = d.status === "eligible" && !d.looksPublic;
+  const hl = headline(d, now);
+  const pct = d.minted != null && d.max ? Math.min(100, (d.minted / d.max) * 100) : 0;
+  const stages = (d.allStages && d.allStages.length ? d.allStages : d.openStages || []).slice(0, 4).map((s) => stageCell(s, d, now)).join("");
+  const img = d.image ? `<img class="thumb" src="${esc(d.image)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : `<div class="thumb"></div>`;
+  return `<div class="card${you ? " you" : ""}" data-slug="${esc(d.slug)}">
+    <div class="ch"><div class="t">${esc(d.name)}</div>${badgeOf(d)}</div>
+    <div class="body">${img}
+      <div class="stats">
+        <div class="sup">${d.minted ?? "–"}<small>/${d.max ?? "–"}</small>${d.minted != null && d.max != null ? `<span class="left">${Math.max(0, d.max - d.minted)} LEFT</span>` : ""}</div>
+        <div class="prog"><i style="width:${pct}%"></i></div>
+        ${hl ? `<div class="lbl">${esc(hl.label)}</div><div class="cd${hl.live ? " live" : ""}" data-at="${hl.at}">${countdown(hl.at)}</div>` : `<div class="lbl">status</div><div class="cd">—</div>`}
+      </div>
+    </div>
+    ${stages ? `<div class="stages">${stages}</div>` : ""}
+    <div class="foot">
+      <a class="pri" href="${esc(d.url)}" target="_blank" rel="noopener">OPENSEA ↗</a>
+      ${d.contract ? `<button data-copy="${esc(d.contract)}">${esc(d.contract.slice(0, 6))}…${esc(d.contract.slice(-3))}</button>` : ""}
+    </div>
+  </div>`;
+}
+
+const passes = (d) => {
+  if (HIDE && d.status !== "eligible" && !String(d.status).endsWith("unfunded")) return false;
+  if (FILTER === "eligible") return d.status === "eligible";
+  if (FILTER === "public") return (d.openStages || []).some((s) => catOf(s) === "PUBLIC");
+  if (FILTER === "upcoming") return d.status === "not_open";
+  return true;
+};
+
+const CHAIN_ABBR = (c) => ({ ethereum: "ETH", base: "BASE", robinhood: "RH", abstract: "ABS", ape_chain: "APE", ink: "INK" }[c] || String(c || "?").slice(0, 4).toUpperCase());
+
+function render() {
+  const rows = [...ROWS.values()].filter(passes);
+  // Eligible first, then live public, then soonest to open.
+  const rank = (d) => d.status === "eligible" ? (d.looksPublic ? 1 : 0) : d.status === "not_open" ? 3 : 2;
+  rows.sort((a, b) => rank(a) - rank(b) || (a.nextStart || Infinity) - (b.nextStart || Infinity));
+
+  const byChain = new Map();
+  for (const d of rows) { const c = d.chain || "other"; if (!byChain.has(c)) byChain.set(c, []); byChain.get(c).push(d); }
+
+  $("out").innerHTML = rows.length
+    ? [...byChain.entries()].map(([c, list]) =>
+        `<div class="chain"><b>${esc(CHAIN_ABBR(c))}</b> ${esc(c)} <span>${list.length}</span></div><div class="grid">${list.map(card).join("")}</div>`
+      ).join("")
+    : `<div class="empty">Nothing matches this filter.</div>`;
+
+  const all = [...ROWS.values()];
+  const counts = {
+    all: all.length,
+    eligible: all.filter((d) => d.status === "eligible").length,
+    public: all.filter((d) => (d.openStages || []).some((s) => catOf(s) === "PUBLIC")).length,
+    upcoming: all.filter((d) => d.status === "not_open").length,
   };
-  const tag = TAGS[d.status] || `<span class="tag no">${esc(d.status.replace(/_/g, " "))}</span>`;
-  const stages = (d.stages || []).map(stageLine).join("<br>");
-  const extra = d.status === "not_open" && d.nextStage ? `next: ${stageLine(d.nextStage)} · opens ${esc(fmt(d.nextStart))}` : d.reason ? `OpenSea said: ${esc(d.reason)}` : d.status === "not_a_drop" ? "OpenSea has no drop for this slug" : "";
-  return `<div class="card"><h3>${esc(d.name)}${d.chain ? ` <span class="meta">[${esc(d.chain)}]</span>` : ""}${tag}</h3>
-    <div class="meta">${stages}${extra ? (stages ? "<br>" : "") + extra : ""}${d.minted != null && d.max != null ? `<br>minted ${d.minted}/${d.max}` : ""}</div>
-    <div><a href="${esc(d.url)}" target="_blank" rel="noopener">Open on OpenSea →</a></div></div>`;
+  for (const t of document.querySelectorAll(".tab")) t.querySelector("b").textContent = counts[t.dataset.f] ?? 0;
+  renderChips();
 }
 
-// Which bucket does a stage belong to? Public is by type; GTD/FCFS by how creators label allowlist stages.
-function catOfStage(s) {
-  const label = String(s.label || "");
-  if (s.type === "public_sale" || /\bpublic\b/i.test(label)) return "public";
-  if (/\b(gtd|guaranteed|guarantee|wl\s*guaranteed|whitelist\s*guaranteed)\b/i.test(label)) return "gtd";
-  if (/\b(fcfs|first[\s-]*come|waitlist|wait\s*list|oversubscribed|allowlist\s*2|wl\s*2)\b/i.test(label)) return "fcfs";
-  return "other";
-}
-const catsOf = (d) => [...new Set((d.stages || []).map(catOfStage))];
-const CAT_NAMES = { gtd: "GTD", fcfs: "FCFS", public: "Public", other: "allowlist" };
-// Shown as cards in the category sections (mintable, or would be if the wallet had funds).
-const SHOW_IN_CATS = new Set(["eligible", "eligible_unfunded", "allowlist_unfunded", "public_error"]);
+function renderChips() {
+  const now = Date.now();
+  const hits = [...ROWS.values()].filter((d) => d.status === "eligible" || String(d.status).endsWith("unfunded"));
+  const pending = [...ROWS.values()].filter((d) => d.status === "not_open" && (d.allStages || []).some((s) => s.startTime > now && catOf(s) !== "PUBLIC")).slice(0, 4);
+  const chip = (d, cls, line) => `<a class="chip${cls}" href="${esc(d.url)}" target="_blank" rel="noopener">${d.image ? `<img src="${esc(d.image)}" alt="" loading="lazy">` : `<img>`}<div><div class="n">${esc(d.name)}</div><div class="s">${line}</div></div></a>`;
+  $("chips").innerHTML = [
+    ...hits.map((d) => {
+      const s = (d.openStages || [])[0] || {};
+      const cat = catOf(s);
+      const money = s.price != null ? " · " + eth(s.price) : "";
+      const end = s.endTime ? ` · <i>ends in ${countdown(s.endTime)}</i>` : "";
+      const unfunded = String(d.status).endsWith("unfunded") ? " · <i>needs funds</i>" : "";
+      return chip(d, cat === "PUBLIC" ? " pub" : "", `${esc(cat)}${esc(money)}${end}${unfunded}`);
+    }),
+    ...pending.map((d) => {
+      const s = (d.allStages || []).filter((x) => x.startTime > now && catOf(x) !== "PUBLIC")[0];
+      return chip(d, " q", `${esc(catOf(s))} opens in ${countdown(s.startTime)} · will recheck`);
+    }),
+  ].join("");
 
-const counts = { gtd: 0, fcfs: 0, public: 0, other: 0 };
-function resetCats() {
-  for (const k in counts) counts[k] = 0;
-  document.querySelectorAll("#cats .cat").forEach((c) => { c.classList.remove("has"); c.querySelector(".list").innerHTML = ""; c.querySelector(".count").textContent = ""; });
-  $("cats").hidden = false;
-}
-function addToCats(d) {
-  for (const cat of catsOf(d)) {
-    const el = document.querySelector(`#cats .cat[data-cat="${cat}"]`);
-    el.classList.add("has");
-    el.querySelector(".list").insertAdjacentHTML("beforeend", card(d));
-    el.querySelector(".count").textContent = `(${++counts[cat]})`;
-  }
+  const eligible = [...ROWS.values()].filter((d) => d.status === "eligible" && !d.looksPublic).length;
+  const pub = [...ROWS.values()].filter((d) => d.status === "eligible" && d.looksPublic).length;
+  if (ROWS.size) $("elig").innerHTML = `${esc(ADDRESS.slice(0, 6))}…${esc(ADDRESS.slice(-4))} · <b style="color:var(--orange)">${eligible}</b> allowlist stage${eligible === 1 ? "" : "s"} open to you · ${pub} public open · ${pending.length} phase${pending.length === 1 ? "" : "s"} pending · ${ROWS.size} drops tracked`;
 }
 
-const reasonOf = (o) => o.status === "not_open" ? (o.nextStart ? "opens " + fmt(o.nextStart) : "no open stage")
-  : o.status === "sold_out" ? "sold out"
-  : o.status === "limit_reached" ? `${catsOf(o).map((c) => CAT_NAMES[c]).join("/")} open — per-wallet limit reached`
-  : o.status === "not_eligible" ? `${catsOf(o).map((c) => CAT_NAMES[c]).join("/")} open but not eligible — ${esc(o.reason)}`
-  : esc(o.reason || o.status);
+/* ---------- live countdowns + auto re-check ---------- */
+function startTicker() {
+  if (TICKER) return;
+  TICKER = setInterval(() => {
+    const now = Date.now();
+    for (const el of document.querySelectorAll(".cd[data-at]")) {
+      const at = Number(el.dataset.at);
+      el.textContent = countdown(at);
+      if (at <= now && !el.dataset.done) { el.dataset.done = "1"; const slug = el.closest(".card")?.dataset.slug; if (slug) RECHECK.set(slug, 0); }
+    }
+    for (const [slug, at] of RECHECK) if (at <= now) { RECHECK.delete(slug); recheck(slug); }
+  }, 1000);
+}
+async function recheck(slug) {
+  try {
+    const d = await checkOne(ADDRESS, slug);
+    if (d && !d.error) { ROWS.set(slug, d); render(); }
+  } catch {}
+}
 
+/* ---------- API ---------- */
 async function checkOne(address, slug) {
   const r = await fetch(`/api/check?address=${encodeURIComponent(address)}&slug=${encodeURIComponent(slug)}`);
   return r.json();
 }
 
+/* ---------- scan ---------- */
 $("scan").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const address = $("addr").value.trim(), chains = $("chains").value;
-  out.innerHTML = ""; resetCats(); $("go").disabled = true;
-  status.textContent = "Loading OpenSea's drop calendar…";
+  ADDRESS = $("addr").value.trim();
+  const chains = $("chains").value;
+  ROWS = new Map(); RECHECK.clear();
+  $("out").innerHTML = ""; $("bar").hidden = false; $("legend").hidden = false; $("note").hidden = false;
+  $("go").disabled = true; $("pbar").hidden = false; $("pbar").firstElementChild.style.width = "0";
+  $("status").textContent = "Loading OpenSea's drop calendar…";
   try {
     const r = await fetch(`/api/drops?chains=${encodeURIComponent(chains)}`);
     const cal = await r.json();
     if (!r.ok) throw new Error(cal.error || r.statusText);
     if (cal.errors?.length && !cal.drops.length) throw new Error("OpenSea returned: " + JSON.stringify(cal.errors[0]));
 
-    const drops = cal.drops, others = [];
-    let done = 0, hits = 0, unfunded = 0, i = 0;
-    const tick = () => { status.textContent = `Checked ${done}/${drops.length} drops (${cal.counts.minting} marked live by OpenSea) — ${hits} mintable so far`; };
-    tick();
+    const drops = cal.drops;
+    let done = 0, i = 0;
+    const tick = () => {
+      $("status").textContent = `Checking ${done}/${drops.length} drops · ${[...ROWS.values()].filter((d) => d.status === "eligible").length} mintable so far`;
+      $("pbar").firstElementChild.style.width = (done / Math.max(1, drops.length)) * 100 + "%";
+    };
+    tick(); startTicker();
+
     await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
       while (i < drops.length) {
         const d = drops[i++];
         try {
-          const res = await checkOne(address, d.slug);
-          if (SHOW_IN_CATS.has(res.status)) { if (res.status === "eligible") hits++; else if (res.status.endsWith("unfunded")) unfunded++; addToCats(res); } else others.push(res);
-        } catch (err) { others.push({ name: d.name, status: "error", reason: err.message }); }
-        done++; tick();
+          const res = await checkOne(ADDRESS, d.slug);
+          if (!res.error) {
+            res.image = res.image || d.image; res.contract = res.contract || d.contract; res.chain = res.chain || d.chain;
+            ROWS.set(d.slug, res);
+            // Schedule an automatic re-check for the moment its next phase opens.
+            if (res.nextStart && res.nextStart > Date.now()) RECHECK.set(d.slug, res.nextStart + 2000);
+          }
+        } catch {}
+        done++; if (done % 3 === 0 || done === drops.length) { render(); }
+        tick();
       }
     }));
-    status.textContent = `Checked ${drops.length} drops. ${hits} mintable now${unfunded > 0 ? `, plus ${unfunded} open drops this wallet can't pay for on that chain (see "needs funds" tags)` : ""}.`;
-
-    const open = others.filter((o) => ["not_eligible", "limit_reached", "error"].includes(o.status));
-    const rest = others.filter((o) => !open.includes(o));
-    if (open.length) out.insertAdjacentHTML("beforeend", `<details open><summary>${open.length} drops are open but this address can't mint (or the check failed)</summary><ul>${open.map((o) => `<li><a href="${esc(o.url || "https://opensea.io/collection/" + o.slug)}" target="_blank" rel="noopener">${esc(o.name || o.slug)}</a> — ${reasonOf(o)}</li>`).join("")}</ul></details>`);
-    if (rest.length) out.insertAdjacentHTML("beforeend", `<details><summary>${rest.length} drops not open or sold out</summary><ul>${rest.map((o) => `<li><a href="${esc(o.url || "https://opensea.io/collection/" + o.slug)}" target="_blank" rel="noopener">${esc(o.name || o.slug)}</a> — ${reasonOf(o)}</li>`).join("")}</ul></details>`);
+    render();
+    const n = [...ROWS.values()].filter((x) => x.status === "eligible").length;
+    $("status").textContent = `Checked ${drops.length} drops · ${n} mintable now · live phases re-check automatically`;
+    $("pbar").hidden = true;
   } catch (err) {
-    status.textContent = "Error: " + err.message;
+    $("status").textContent = "Error: " + err.message;
+    $("pbar").hidden = true;
   } finally { $("go").disabled = false; }
 });
 
+/* ---------- single drop ---------- */
 $("one").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const address = $("addr").value.trim();
-  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) { status.textContent = "Enter a wallet address first."; return; }
+  ADDRESS = $("addr").value.trim();
+  if (!/^0x[0-9a-fA-F]{40}$/.test(ADDRESS)) { $("status").textContent = "Enter a wallet address first."; return; }
   const raw = $("slug").value.trim();
   const m = raw.match(/opensea\.io\/collection\/([a-z0-9._-]+)/i);
   const slug = (m ? m[1] : raw).toLowerCase();
   if (!slug) return;
-  $("go1").disabled = true; status.textContent = `Checking ${slug}…`;
+  $("go1").disabled = true; $("status").textContent = `Checking ${slug}…`;
+  $("bar").hidden = false; $("legend").hidden = false; $("note").hidden = false;
   try {
-    const res = await checkOne(address, slug);
+    const res = await checkOne(ADDRESS, slug);
     if (res.error) throw new Error(res.error);
-    if ($("cats").hidden) resetCats();
-    if (SHOW_IN_CATS.has(res.status)) addToCats(res); else out.insertAdjacentHTML("afterbegin", card(res));
-    status.textContent = res.status === "eligible" ? "Mintable." : res.status.endsWith("unfunded") ? "Open, but this wallet has no funds on that chain." : `Not mintable: ${res.status.replace(/_/g, " ")}.`;
-  } catch (err) { status.textContent = "Error: " + err.message; }
+    ROWS.set(slug, res);
+    if (res.nextStart && res.nextStart > Date.now()) RECHECK.set(slug, res.nextStart + 2000);
+    startTicker(); render();
+    $("status").textContent = res.status === "eligible" ? "Mintable now." : `${res.name}: ${String(res.status).replace(/_/g, " ")}.`;
+  } catch (err) { $("status").textContent = "Error: " + err.message; }
   finally { $("go1").disabled = false; }
+});
+
+/* ---------- filters ---------- */
+for (const t of document.querySelectorAll(".tab")) t.addEventListener("click", () => {
+  for (const o of document.querySelectorAll(".tab")) o.classList.toggle("on", o === t);
+  FILTER = t.dataset.f; render();
+});
+$("hide").addEventListener("click", () => { HIDE = !HIDE; $("hide").classList.toggle("on", HIDE); render(); });
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-copy]");
+  if (!b) return;
+  navigator.clipboard?.writeText(b.dataset.copy);
+  const t = b.textContent; b.textContent = "COPIED"; setTimeout(() => { b.textContent = t; }, 900);
 });
 </script>
 </body>

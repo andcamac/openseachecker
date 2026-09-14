@@ -262,6 +262,17 @@ select{appearance:none;-webkit-appearance:none;padding-right:28px;background-ima
 .bub .fr{position:absolute;top:2px;left:calc(50% - var(--bs)/2 - 2px);font-size:8px;font-weight:700;letter-spacing:.06em;background:var(--soft);color:#13140e;padding:3px 6px;border-radius:999px;border:2px solid var(--bg)}
 .bub .usd{color:var(--dim)}
 
+/* signal tier */
+.sig{display:inline-block;font-size:8px;font-weight:700;letter-spacing:.1em;padding:2px 6px;border-radius:999px;background:var(--card);color:var(--dim);border:1px solid var(--chip);vertical-align:middle;margin-left:4px}
+.sig.warm{color:var(--muted)}.sig.hot{color:var(--soft);border-color:var(--soft)}.sig.blazing{color:#fff;background:var(--orange);border-color:var(--orange)}
+.bub .sig{margin:4px 0 0}
+.kv .why{font-size:10px;color:var(--muted);font-weight:400;line-height:1.5;white-space:normal}
+.wl{display:flex;flex-direction:column;gap:3px;margin:0 0 12px}
+.wl div{display:flex;justify-content:space-between;gap:8px;background:var(--card);border-radius:8px;padding:6px 10px;font-size:10px}
+.wl div b{color:var(--orange)}.wl div i{font-style:normal;color:var(--muted)}
+.foot a.tg{background:#4a2a12;color:var(--orange)}
+.pill.tg{color:var(--orange)}
+
 /* dense mode */
 body.dense{--bs:clamp(64px,15vw,88px)}
 body.dense .bubbles{gap:8px 4px}
@@ -350,7 +361,7 @@ table.tv .dot.os{background:var(--soft)}table.tv .dot.me{background:var(--orange
     <div class="brand"><b>◈</b>MINT RADAR <small>ETH · BASE · SOL</small></div>
     <div class="forms">
       <form id="scan">
-        <input id="addr" placeholder="wallet address — 0x… (OpenSea) or Solana base58 (Magic Eden)" autocomplete="off" spellcheck="false">
+        <input id="addr" placeholder="wallet(s) — 0x… (OpenSea) or Solana base58 (Magic Eden), comma-separated for several" autocomplete="off" spellcheck="false">
         <select id="chains" aria-label="Chains">
           <option value="">Auto-detect</option>
           <option value="ethereum">Ethereum</option>
@@ -424,6 +435,8 @@ table.tv .dot.os{background:var(--soft)}table.tv .dot.me{background:var(--orange
     </div>
     <button class="pill" id="dense" type="button" title="Smaller circles, tighter grid">DENSE</button>
     <button class="pill" id="sound" type="button" title="Beep when a phase opens">🔇 SOUND</button>
+    <button class="pill" id="sigf" type="button" title="Hide COLD-signal projects (no socials, no community)">HOT+ ONLY</button>
+    <a class="pill tg" id="tgpill" href="#" target="_blank" rel="noopener" hidden title="Telegram alerts">🔔 ALERTS</a>
     <button class="pill" id="palbtn" type="button" title="Command palette">⌘K</button>
     <div class="tog" id="hide"><span>HIDE WHAT I CAN'T MINT</span><div class="sw"></div></div>
   </div>
@@ -525,6 +538,11 @@ const isPast = (s, now) => s.endTime != null && s.endTime <= now;
 
 /* ---------- state ---------- */
 let ADDRESS = "";
+let ADDRESSES = [];            // every wallet in the current scan (ADDRESS is the first)
+const parseAddrs = (raw) => [...new Set(String(raw || "").split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean))].slice(0, 10);
+let SIGF = false;              // HOT+ ONLY filter
+const TGCFG = { enabled: false, bot: null };
+const tgLink = (id) => TGCFG.enabled ? `https://t.me/${TGCFG.bot}?start=${btoa(unescape(encodeURIComponent(id))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}` : null;
 let MODE = "evm";              // evm | sol — what the last scan was
 let ROWS = new Map();          // slug -> /api/check result (OpenSea)
 const HOLD = new Map();        // slug -> holdings (OpenSea)
@@ -546,12 +564,13 @@ const RECHECK = new Map();
 let SELECTED = null;
 let ITEMS = new Map();
 
-const memKey = () => `mintradar:elig:${ADDRESS.toLowerCase()}`;
-function loadMem() { try { return JSON.parse(localStorage.getItem(memKey()) || "{}"); } catch { return {}; } }
-function rememberEligible(slug, stages) {
-  try { const m = loadMem(); m[slug] = { at: Date.now(), stages: (stages || []).map((x) => catOf(x)) }; localStorage.setItem(memKey(), JSON.stringify(m)); } catch {}
+const memKey = (a) => `mintradar:elig:${(a || ADDRESS).toLowerCase()}`;
+function loadMem(a) { try { return JSON.parse(localStorage.getItem(memKey(a)) || "{}"); } catch { return {}; } }
+function rememberEligible(slug, stages, a) {
+  try { const m = loadMem(a); m[slug] = { at: Date.now(), stages: (stages || []).map((x) => catOf(x)) }; localStorage.setItem(memKey(a), JSON.stringify(m)); } catch {}
 }
-const wasEligible = (slug) => { try { return loadMem()[slug] || null; } catch { return null; } };
+// "was eligible" on any wallet in the scan
+const wasEligible = (slug) => { try { for (const a of (ADDRESSES.length ? ADDRESSES : [ADDRESS])) { const m = loadMem(a)[slug]; if (m) return m; } return null; } catch { return null; } };
 const isMinted = (d) => (HOLD.get(d.slug)?.owned || 0) > 0;
 const isMissed = (d) => d.status === "ended" && !isMinted(d) && !!wasEligible(d.slug);
 
@@ -642,7 +661,8 @@ function buildItems() {
     const hl = headline(d, now);
     const pct = d.minted != null && d.max ? Math.min(100, (d.minted / d.max) * 100) : 0;
     let tag = { t: "", c: "" };
-    if (status === "eligible") tag = { t: "YOU'RE IN", c: "g" };
+    const nw = d.byWallet ? Object.values(d.byWallet).filter((w) => w.status === "eligible" && !w.looksPublic).length : 0;
+    if (status === "eligible") tag = { t: nw > 1 || (ADDRESSES.length > 1 && nw) ? `YOU'RE IN · ${nw}/${ADDRESSES.length}` : "YOU'RE IN", c: "g" };
     else if (status === "public") tag = { t: "PUBLIC", c: "y" };
     else if (status === "unfunded") tag = { t: "NEEDS FUNDS", c: "" };
     else if (status === "minted") tag = { t: `MINTED ×${HOLD.get(d.slug).owned}${HOLD.get(d.slug).more ? "+" : ""}`, c: "g" };
@@ -659,7 +679,7 @@ function buildItems() {
       status, cat: osPhaseCat(d, now), cats: [], pct,
       ring: status === "eligible" || status === "minted" ? "you" : status === "public" ? "pub" : "q",
       dim: status === "ended" || status === "not_eligible",
-      tag, sub, src: d,
+      tag, sub, src: d, signal: d.signal || null,
     });
   }
   for (const l of ME.launchpad) {
@@ -673,7 +693,7 @@ function buildItems() {
     items.push({
       src_: "me", badged: !!l.badged, id: "me:lp:" + l.symbol, kind: "launch", name: l.name, image: l.image, url: l.url, chain: "solana",
       status, cat: "LAUNCHPAD", cats: l.categories || [], pct: status === "live" ? 100 : status === "upcoming" ? 0 : 100,
-      ring: status === "live" || held ? "solr" : status === "upcoming" ? "pub" : "q", dim: false, tag, sub, src: l,
+      ring: status === "live" || held ? "solr" : status === "upcoming" ? "pub" : "q", dim: false, tag, sub, src: l, signal: l.signal || null,
     });
   }
   for (const m of CHAIN_MINTS.list) {
@@ -690,7 +710,7 @@ function buildItems() {
     items.push({
       src_: "oc", risk, fresh: m.deployedNow ? m.firstSeen : null, id: "cm:" + m.candyMachine, kind: "cmmint", name: m.name, image: m.image, url: m.url, chain: "solana",
       status: m.status === "sold_out" ? "sold_out" : m.status, cat: "ON-CHAIN", cats: [], pct,
-      ring: m.status === "live" ? "pub" : "q", dim: m.status === "sold_out", tag, sub, src: m,
+      ring: m.status === "live" ? "pub" : "q", dim: m.status === "sold_out", tag, sub, src: m, signal: m.signal || null,
     });
   }
   if (ME.wallet) {
@@ -703,7 +723,7 @@ function buildItems() {
         ring: "solr", dim: false,
         tag: { t: `×${c.count}${c.listed ? ` · ${c.listed} LISTED` : ""}`, c: "s" },
         sub: { t: c.floor != null ? `floor ${solf(c.floor)}${c.value ? ` · ${solf(c.value)}${solUsd(c.value) ? " ≈ " + solUsd(c.value) : ""}` : ""}` : `${c.count} item${c.count === 1 ? "" : "s"}`, cls: c.value ? "sol" : "" },
-        src: c,
+        src: c, signal: c.signal || null,
       });
     }
   }
@@ -715,7 +735,7 @@ function buildItems() {
       ring: held ? "solr" : "pub", dim: false,
       tag: held ? { t: `#${i + 1} · YOU HOLD`, c: "s" } : { t: `#${i + 1}`, c: "" },
       sub: { t: `floor ${solf(t.floor)}${solUsd(t.floor) ? " ≈ " + solUsd(t.floor) : ""}${t.listed != null ? ` · ${t.listed} listed` : ""}`, cls: "" },
-      src: t,
+      src: t, signal: t.signal || null,
     });
   });
   for (const c of ME.collections.values()) {
@@ -736,6 +756,7 @@ const TABS = {
 };
 function passes(it) {
   if (HIDE && !["eligible", "public", "unfunded", "live", "upcoming"].includes(it.status)) return false;
+  if (SIGF && it.signal && it.signal.score < 45 && it.kind !== "holding") return false;
   if (FILTER === "all") return it.status !== "ended";
   if (FILTER === "missed") return it.status === "missed" || it.status === "ended";
   return it.status === FILTER;
@@ -777,6 +798,8 @@ function linkBubbles(it) {
 }
 
 const SRC_NAME = { os: "OpenSea", me: "Magic Eden", oc: "On-chain (Candy Machine)" };
+const sigChip = (it) => it.signal ? `<span class="sig ${it.signal.tier.toLowerCase()}" title="Signal ${it.signal.score}/100 · ${esc((it.signal.why || []).join(", ") || "no signals")}">${esc(it.signal.tier)}${it.signal.discord?.members ? ` · ${fmtK(it.signal.discord.members)}` : ""}</span>` : "";
+const fmtK = (n) => (n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k" : String(n));
 
 /* ---------- rendering ---------- */
 function bubble(it) {
@@ -790,7 +813,8 @@ function bubble(it) {
     <span class="chn${it.chain === "solana" ? " sol" : ""}" title="${esc(SRC_NAME[it.src_] || "")} · ${esc(it.chain)}"><i class="${esc(it.src_ || "")}"></i>${esc(CHAIN_ABBR(it.chain))}</span>
     ${fresh}
     ${tag.t ? `<span class="tag ${tag.c}">${esc(tag.t)}</span>` : ""}
-    <span class="nm">${esc(it.name)}${it.badged ? `<span class="vf" title="Verified on Magic Eden">✔</span>` : ""}${it.risk === "med" ? `<span class="vf" style="color:var(--muted)" title="No socials or hidden metadata — check before minting">?</span>` : ""}</span>${sub}
+    <span class="nm">${esc(it.name)}${it.badged || it.src?.verified ? `<span class="vf" title="Verified">✔</span>` : ""}${it.risk === "med" ? `<span class="vf" style="color:var(--muted)" title="No socials or hidden metadata — check before minting">?</span>` : ""}</span>${sub}
+    ${sigChip(it)}
     ${linkBubbles(it)}
   </div>`;
 }
@@ -887,7 +911,7 @@ function opened(id) {
 
 /* ---------- table view ---------- */
 const COLS = [
-  ["name", "Collection"], ["src", "Source · chain"], ["status", "Status"], ["phase", "Phase"], ["price", "Price"], ["progress", "Minted"], ["when", "Opens / ends"], ["links", "Links"],
+  ["name", "Collection"], ["src", "Source · chain"], ["status", "Status"], ["signal", "Signal"], ["phase", "Phase"], ["price", "Price"], ["progress", "Minted"], ["when", "Opens / ends"], ["links", "Links"],
 ];
 function rowData(it) {
   const now = Date.now(); const d = it.src;
@@ -914,7 +938,7 @@ function renderTable(rows) {
   if (!rows.length) return `<div class="empty">Nothing matches this filter.</div>`;
   const data = rows.map((it) => ({ it, r: rowData(it) }));
   const k = TSORT.key, dir = TSORT.dir;
-  const val = (x) => k === "name" ? x.it.name.toLowerCase() : k === "src" ? x.it.chain + x.it.src_ : k === "status" ? (STATUS_META[x.it.status]?.order ?? 99) : k === "phase" ? x.r.phase : k === "price" ? (x.r.priceN ?? Infinity) : k === "progress" ? -x.r.pct : k === "when" ? (x.r.whenAt ?? Infinity) : 0;
+  const val = (x) => k === "name" ? x.it.name.toLowerCase() : k === "src" ? x.it.chain + x.it.src_ : k === "status" ? (STATUS_META[x.it.status]?.order ?? 99) : k === "signal" ? -(x.it.signal?.score ?? -1) : k === "phase" ? x.r.phase : k === "price" ? (x.r.priceN ?? Infinity) : k === "progress" ? -x.r.pct : k === "when" ? (x.r.whenAt ?? Infinity) : 0;
   data.sort((a, b) => { const va = val(a), vb = val(b); return (va > vb ? 1 : va < vb ? -1 : 0) * dir; });
   const head = COLS.map(([key, label]) => `<th data-k="${key}" class="${TSORT.key === key ? "on" : ""}">${label}${TSORT.key === key ? (dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("");
   const body = data.map(({ it, r }) => {
@@ -924,6 +948,7 @@ function renderTable(rows) {
       <td><div class="nmc">${it.image ? `<img src="${esc(it.image)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph2',textContent:'◈'}))">` : `<div class="ph2">◈</div>`}<div><b>${esc(it.name)}${it.badged ? ' <span style="color:var(--soft)">✔</span>' : ""}</b><small>${esc(STATUS_META[it.status]?.label || it.status)}${it.fresh && Date.now() - it.fresh < 6 * 3600000 ? ` · NEW ${esc(ago(it.fresh))}` : ""}</small></div></div></td>
       <td><span class="dot ${esc(it.src_ || "")}"></span>${esc(SRC_NAME[it.src_] || "")} · ${esc(CHAIN_ABBR(it.chain))}</td>
       <td><span class="st2 ${st.c === "g" || st.c === "s" ? "you" : st.c === "y" ? "pub" : ""}">${esc(st.t || "—")}</span></td>
+      <td>${it.signal ? sigChip(it) : "—"}</td>
       <td>${esc(r.phase || "—")}</td>
       <td>${r.price || "—"}</td>
       <td>${esc(r.prog)}${r.pct ? `<span class="bar2"><i style="width:${r.pct}%"></i></span>` : ""}</td>
@@ -959,13 +984,14 @@ function renderChips() {
 
   if (MODE === "sol" && ME.wallet) {
     const w = ME.wallet;
-    $("elig").innerHTML = `${esc(short(ADDRESS))} · <b style="color:var(--orange)">${w.nfts}${w.more ? "+" : ""}</b> NFTs across ${w.collections.length} collections · est. <b style="color:var(--orange)">${esc(solf(w.portfolio.valueSol))}</b> at floor${w.portfolio.unpricedCollections ? ` (${w.portfolio.unpricedCollections} unpriced)` : ""}${w.portfolio.escrowSol ? ` · ${esc(solf(w.portfolio.escrowSol))} in ME escrow` : ""} · ${ME.launchpad.filter((x) => x.status === "live").length} launchpads minting · ${ME.launchpad.filter((x) => x.status === "upcoming").length} upcoming`;
+    $("elig").innerHTML = `${w.wallets ? `<b style="color:var(--soft)">${w.wallets.length} wallets</b>` : esc(short(ADDRESS))} · <b style="color:var(--orange)">${w.nfts}${w.more ? "+" : ""}</b> NFTs across ${w.collections.length} collections · est. <b style="color:var(--orange)">${esc(solf(w.portfolio.valueSol))}</b> at floor${w.portfolio.unpricedCollections ? ` (${w.portfolio.unpricedCollections} unpriced)` : ""}${w.portfolio.escrowSol ? ` · ${esc(solf(w.portfolio.escrowSol))} in ME escrow` : ""} · ${ME.launchpad.filter((x) => x.status === "live").length} launchpads minting · ${ME.launchpad.filter((x) => x.status === "upcoming").length} upcoming`;
   } else if (MODE === "sol") {
     $("elig").innerHTML = `Magic Eden launchpad · <b style="color:var(--orange)">${ME.launchpad.filter((x) => x.status === "live").length}</b> minting now · ${ME.launchpad.filter((x) => x.status === "upcoming").length} upcoming · ${ME.trending.length} trending collections. Add a Solana address to see your NFTs and activity.`;
   } else if (ROWS.size) {
     const eligible = [...ROWS.values()].filter((d) => d.status === "eligible" && !d.looksPublic).length;
     const pub = [...ROWS.values()].filter((d) => d.status === "eligible" && d.looksPublic).length;
-    $("elig").innerHTML = `${esc(ADDRESS.slice(0, 6))}…${esc(ADDRESS.slice(-4))} · <b style="color:var(--orange)">${eligible}</b> allowlist stage${eligible === 1 ? "" : "s"} open to you · ${pub} public open · ${pending.length} phase${pending.length === 1 ? "" : "s"} pending · ${ROWS.size} drops tracked`;
+    const wtag = tgLink("wallet:" + ADDRESS.toLowerCase()) ? ` · <a href="${esc(tgLink("wallet:" + ADDRESS.toLowerCase()))}" target="_blank" rel="noopener" style="color:var(--orange)">🔔 alert me when eligible</a>` : "";
+    $("elig").innerHTML = `${ADDRESSES.length > 1 ? `<b style="color:var(--soft)">${ADDRESSES.length} wallets</b>` : `${esc(ADDRESS.slice(0, 6))}…${esc(ADDRESS.slice(-4))}`} · <b style="color:var(--orange)">${eligible}</b> allowlist stage${eligible === 1 ? "" : "s"} open to you${wtag} · ${pub} public open · ${pending.length} phase${pending.length === 1 ? "" : "s"} pending · ${ROWS.size} drops tracked`;
   }
 }
 
@@ -1040,9 +1066,12 @@ function sheetHtml(it) {
   const now = Date.now();
   const img = it.image ? `<img src="${esc(it.image)}" alt="">` : `<div class="ph2">◈</div>`;
   const head = (badge, meta) => `<div class="sh"><div class="ring" style="--rc:var(--${it.ring === "you" ? "orange" : it.ring === "pub" ? "soft" : it.ring === "solr" ? "sol" : "chip"});--p:${it.pct.toFixed(1)}%">${img}</div><div><div class="t">${esc(it.name)}</div><div class="m">${meta}</div>${badge}</div></div>`;
+  const sig = it.signal ? `<div class="kv"><div style="grid-column:1/-1"><div class="l">Signal · ${it.signal.score}/100</div><div class="v">${sigChip(it)} <span class="why">${esc((it.signal.why || []).join(" · ") || "no website, socials or community found")}</span></div></div></div>` : "";
+  const tg = tgLink(it.id) && (it.kind === "osdrop" || it.kind === "launch" || it.kind === "cmmint") ? `<a class="tg" href="${esc(tgLink(it.id))}" target="_blank" rel="noopener" title="Get a Telegram ping 10 min before it opens and at open">🔔 TELEGRAM ALERT</a>` : "";
+  const wallets = it.kind === "osdrop" && it.src.byWallet && Object.keys(it.src.byWallet).length > 1 ? `<h4>Per wallet</h4><div class="wl">${Object.entries(it.src.byWallet).map(([a, w]) => `<div><span>${esc(short(a))}</span>${w.status === "eligible" && !w.looksPublic ? `<b>✔ eligible</b>` : w.status === "eligible" ? `<i>public</i>` : `<i>${esc(String(w.status).replace(/_/g, " "))}</i>`}</div>`).join("")}</div>` : "";
   const socials = itemLinks(it).filter((l) => l.k !== "mkt");
   const socialRow = socials.length ? `<div class="cats" style="margin-top:10px">${socials.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener"><span style="color:var(--soft)">${esc(l.title.toUpperCase())} ↗</span></a>`).join("")}</div>` : "";
-  const kv = (pairs) => socialRow + `<div class="kv">${pairs.filter(Boolean).map(([l, v, c]) => `<div><div class="l">${l}</div><div class="v ${c || ""}">${v}</div></div>`).join("")}</div>`;
+  const kv = (pairs) => socialRow + sig + wallets + `<div class="kv">${pairs.filter(Boolean).map(([l, v, c]) => `<div><div class="l">${l}</div><div class="v ${c || ""}">${v}</div></div>`).join("")}</div>`;
 
   if (it.kind === "osdrop") {
     const d = it.src;
@@ -1060,7 +1089,7 @@ function sheetHtml(it) {
       + `<div class="prog"><i style="width:${it.pct}%"></i></div>`
       + (stages ? `<h4>Stages</h4><div class="stages">${stages}</div>` : "")
       + (d.reason && it.status !== "eligible" && it.status !== "upcoming" ? `<p class="desc">OpenSea: ${esc(String(d.reason).slice(0, 240))}</p>` : "")
-      + `<div class="foot"><a class="pri" href="${esc(d.url)}" target="_blank" rel="noopener">OPENSEA ↗</a>${d.contract ? `<button data-copy="${esc(d.contract)}" type="button">${esc(d.contract.slice(0, 6))}…${esc(d.contract.slice(-4))}</button>` : ""}<button data-recheck="${esc(d.slug)}" type="button">RE-CHECK</button></div>`;
+      + `<div class="foot">${tg}<a class="pri" href="${esc(d.url)}" target="_blank" rel="noopener">OPENSEA ↗</a>${d.contract ? `<button data-copy="${esc(d.contract)}" type="button">${esc(d.contract.slice(0, 6))}…${esc(d.contract.slice(-4))}</button>` : ""}<button data-recheck="${esc(d.slug)}" type="button">RE-CHECK</button></div>`;
   }
   if (it.kind === "launch") {
     const l = it.src;
@@ -1079,7 +1108,7 @@ function sheetHtml(it) {
       ])
       + (l.categories?.length ? `<div class="cats">${l.categories.map((c) => `<span>${esc(catLabel(c))}</span>`).join("")}</div>` : "")
       + (l.description ? `<p class="desc">${esc(l.description)}</p>` : "")
-      + `<div class="foot"><a class="pri sol" href="${esc(l.url)}" target="_blank" rel="noopener">LAUNCHPAD ↗</a><a href="${esc(l.marketUrl)}" target="_blank" rel="noopener">MARKET ↗</a>${l.contract ? `<button data-copy="${esc(l.contract)}" type="button">${esc(short(l.contract))}</button>` : ""}</div>`;
+      + `<div class="foot">${tg}<a class="pri sol" href="${esc(l.url)}" target="_blank" rel="noopener">LAUNCHPAD ↗</a><a href="${esc(l.marketUrl)}" target="_blank" rel="noopener">MARKET ↗</a>${l.contract ? `<button data-copy="${esc(l.contract)}" type="button">${esc(short(l.contract))}</button>` : ""}</div>`;
   }
   if (it.kind === "cmmint") {
     const m = it.src;
@@ -1100,7 +1129,7 @@ function sheetHtml(it) {
       + (m.phases?.length ? `<h4>Phases (Candy Guard)</h4><div class="stages">${m.phases.slice(0, 4).map(phaseRow).join("")}</div>` : "")
       + (m.description ? `<p class="desc">${esc(m.description)}</p>` : "")
       + `<p class="desc" style="color:var(--dim)">Read straight from the Candy Machine account — the same data every launchpad shows. Mint on the project's own site or launchpad; this page never sends transactions.</p>`
-      + `<div class="foot"><a class="pri sol" href="${esc(m.collectionUrl)}" target="_blank" rel="noopener">COLLECTION ↗</a><a href="${esc(m.url)}" target="_blank" rel="noopener">SOLSCAN ↗</a><button data-copy="${esc(m.candyMachine)}" type="button">${esc(short(m.candyMachine))}</button></div>`;
+      + `<div class="foot">${tg}<a class="pri sol" href="${esc(m.collectionUrl)}" target="_blank" rel="noopener">COLLECTION ↗</a><a href="${esc(m.url)}" target="_blank" rel="noopener">SOLSCAN ↗</a><button data-copy="${esc(m.candyMachine)}" type="button">${esc(short(m.candyMachine))}</button></div>`;
   }
   if (it.kind === "holding") {
     const c = it.src;
@@ -1154,9 +1183,13 @@ async function loadHoldings(rows) {
     while (i < rows.length) {
       const d = rows[i++];
       try {
-        const r = await fetch(`/api/holdings?address=${encodeURIComponent(ADDRESS)}&chain=${encodeURIComponent(d.chain || "ethereum")}&slug=${encodeURIComponent(d.slug)}`);
-        const h = await r.json();
-        if (!h.error && h.owned != null) HOLD.set(d.slug, h);
+        let owned = 0, more = false, any = false;
+        for (const a of ADDRESSES) {
+          const r = await fetch(`/api/holdings?address=${encodeURIComponent(a)}&chain=${encodeURIComponent(d.chain || "ethereum")}&slug=${encodeURIComponent(d.slug)}`);
+          const h = await r.json();
+          if (!h.error && h.owned != null) { owned += h.owned; more = more || !!h.more; any = true; }
+        }
+        if (any) HOLD.set(d.slug, { owned, more });
       } catch {}
     }
   }));
@@ -1179,9 +1212,8 @@ function startTicker() {
 }
 async function recheck(slug) {
   try {
-    const d = await checkOne(ADDRESS, slug);
+    const d = await checkMerged(slug);
     if (d && !d.error) {
-      if (d.status === "eligible" && !d.looksPublic) rememberEligible(slug, d.openStages);
       if (d.status === "ended" && !HOLD.has(slug)) loadHoldings([d]);
       const prev = ROWS.get(slug) || {};
       d.image = d.image || prev.image; d.chain = d.chain || prev.chain;
@@ -1199,6 +1231,22 @@ function showUi() { $("bar").hidden = false; $("legend").hidden = false; $("note
 function setMode(m) { MODE = m; FILTER = "all"; renderTabs(); }
 const fetchJson = async (url) => { const r = await fetch(url); const j = await r.json(); if (!r.ok || j.error) throw new Error(j.error || r.statusText); return j; };
 
+// Rank of an OpenSea result for merging several wallets: lower is better.
+const OS_RANK = (r) => r.status === "eligible" ? (r.looksPublic ? 2 : 0) : r.status === "allowlist_unfunded" ? 1 : r.status === "eligible_unfunded" ? 3 : r.status === "limit_reached" ? 4 : r.status === "not_eligible" ? 5 : r.status === "public_error" ? 5 : r.status === "not_open" ? 6 : r.status === "ended" ? 7 : r.status === "sold_out" ? 8 : 9;
+const WALLET_INDEPENDENT = new Set(["not_open", "ended", "sold_out", "not_a_drop", "skipped"]);
+// Check one drop for every wallet in the scan and merge into a single row.
+async function checkMerged(slug) {
+  const first = await checkOne(ADDRESSES[0], slug);
+  if (first.error) return first;
+  const byWallet = { [ADDRESSES[0]]: { status: first.status, looksPublic: !!first.looksPublic, reason: first.reason || null } };
+  let best = first;
+  if (ADDRESSES.length > 1 && !WALLET_INDEPENDENT.has(first.status)) {
+    const rest = await Promise.all(ADDRESSES.slice(1).map((a) => checkOne(a, slug).catch(() => null)));
+    ADDRESSES.slice(1).forEach((a, i) => { const r = rest[i]; if (r && !r.error) { byWallet[a] = { status: r.status, looksPublic: !!r.looksPublic, reason: r.reason || null }; if (OS_RANK(r) < OS_RANK(best)) best = r; } });
+  }
+  for (const [a, w] of Object.entries(byWallet)) if (w.status === "eligible" && !w.looksPublic) rememberEligible(slug, first.openStages, a);
+  return { ...best, byWallet };
+}
 async function scanEvm(chains) {
   ROWS = new Map(); RECHECK.clear();
   $("status").textContent = "Loading OpenSea's drop calendar…";
@@ -1206,8 +1254,9 @@ async function scanEvm(chains) {
   if (cal.errors?.length && !cal.drops.length) throw new Error("OpenSea returned: " + JSON.stringify(cal.errors[0]));
   const drops = cal.drops;
   let done = 0, i = 0;
+  const wl = ADDRESSES.length > 1 ? ` · ${ADDRESSES.length} wallets` : "";
   const tick = () => {
-    $("status").textContent = `Checking ${done}/${drops.length} drops · ${[...ROWS.values()].filter((d) => d.status === "eligible").length} mintable so far`;
+    $("status").textContent = `Checking ${done}/${drops.length} drops${wl} · ${[...ROWS.values()].filter((d) => d.status === "eligible").length} mintable so far`;
     $("pbar").firstElementChild.style.width = (done / Math.max(1, drops.length)) * 100 + "%";
   };
   tick(); startTicker();
@@ -1215,11 +1264,10 @@ async function scanEvm(chains) {
     while (i < drops.length) {
       const d = drops[i++];
       try {
-        const res = await checkOne(ADDRESS, d.slug);
+        const res = await checkMerged(d.slug);
         if (!res.error) {
           res.image = res.image || d.image; res.contract = res.contract || d.contract; res.chain = res.chain || d.chain;
           ROWS.set(d.slug, res);
-          if (res.status === "eligible" && !res.looksPublic) rememberEligible(d.slug, res.openStages);
           if (res.nextStart && res.nextStart > Date.now()) RECHECK.set(d.slug, res.nextStart + 2000);
         }
       } catch {}
@@ -1240,6 +1288,23 @@ async function scanEvm(chains) {
   }
 }
 
+function mergeWallets(ws) {
+  if (ws.length === 1) return ws[0];
+  const cols = new Map();
+  for (const w of ws) for (const c of w.collections) {
+    const g = cols.get(c.symbol);
+    if (!g) cols.set(c.symbol, { ...c, items: [...(c.items || [])] });
+    else { g.count += c.count; g.listed += c.listed; g.items = [...g.items, ...(c.items || [])].slice(0, 12); if (g.floor != null) g.value = g.floor * g.count; }
+  }
+  const collections = [...cols.values()].sort((a, b) => b.count - a.count);
+  const valueSol = collections.reduce((s, c) => s + (c.value || 0), 0);
+  return {
+    address: ws[0].address, wallets: ws.map((w) => w.address), chain: "solana", source: "magiceden",
+    nfts: ws.reduce((s, w) => s + w.nfts, 0), more: ws.some((w) => w.more), collections,
+    portfolio: { valueSol, pricedCollections: collections.filter((c) => c.value != null).length, unpricedCollections: collections.filter((c) => c.value == null).length, escrowSol: ws.reduce((s, w) => s + (w.portfolio.escrowSol || 0), 0) || null },
+    activity: ws.flatMap((w) => w.activity.map((a) => ({ ...a, wallet: w.address }))).sort((a, b) => (b.at || 0) - (a.at || 0)),
+  };
+}
 async function scanSol(address) {
   ME.launchpad = []; ME.trending = []; ME.wallet = null; ME.collections.clear();
   const steps = [];
@@ -1251,7 +1316,7 @@ async function scanSol(address) {
     fetchJson("/api/me_launchpad").then((r) => { ME.launchpad = r.drops; FRESH.me = Date.now(); steps.push(`${r.counts.live} launchpads minting · ${r.counts.upcoming} upcoming`); }),
     fetchJson("/api/me_trending?range=1d").then((r) => { ME.trending = r.collections; steps.push(`${r.collections.length} trending`); }),
   ];
-  if (address) jobs.push(fetchJson(`/api/me_wallet?address=${encodeURIComponent(address)}`).then((r) => { ME.wallet = r; steps.push(`${r.nfts} NFTs ≈ ${solf(r.portfolio.valueSol)}`); }));
+  if (address) jobs.push(Promise.all(ADDRESSES.map((a) => fetchJson(`/api/me_wallet?address=${encodeURIComponent(a)}`))).then((ws) => { ME.wallet = mergeWallets(ws); steps.push(`${ME.wallet.nfts} NFTs ≈ ${solf(ME.wallet.portfolio.valueSol)}${ws.length > 1 ? ` across ${ws.length} wallets` : ""}`); }));
   const results = await Promise.allSettled(jobs.map((p) => p.then((v) => { $("pbar").firstElementChild.style.width = (10 + (steps.length / jobs.length) * 90) + "%"; render(); return v; })));
   const failed = results.filter((r) => r.status === "rejected").map((r) => r.reason.message);
   $("pbar").hidden = true;
@@ -1262,11 +1327,12 @@ async function scanSol(address) {
 
 $("scan").addEventListener("submit", async (e) => {
   e.preventDefault();
-  ADDRESS = $("addr").value.trim();
+  ADDRESSES = parseAddrs($("addr").value); ADDRESS = ADDRESSES[0] || "";
   const chains = $("chains").value;
-  const sol = chains === "solana" || (!chains && isSol(ADDRESS)) || (isSol(ADDRESS) && !isEvm(ADDRESS));
-  if (!sol && !isEvm(ADDRESS)) { $("status").textContent = "Enter a 0x address (OpenSea) or a Solana address (Magic Eden), or pick Solana to browse the launchpad without one."; return; }
-  if (sol && ADDRESS && !isSol(ADDRESS)) { $("status").textContent = "That isn't a Solana address."; return; }
+  const allEvm = ADDRESSES.length && ADDRESSES.every(isEvm), allSol = ADDRESSES.length && ADDRESSES.every(isSol);
+  const sol = chains === "solana" || (!chains && allSol) || (allSol && !allEvm);
+  if (!sol && !allEvm) { $("status").textContent = ADDRESSES.length > 1 ? "Mix of address types — scan EVM (0x…) wallets and Solana wallets separately." : "Enter a 0x address (OpenSea) or a Solana address (Magic Eden), or pick Solana to browse the launchpad without one."; return; }
+  if (sol && ADDRESS && !allSol) { $("status").textContent = "Those aren't all Solana addresses."; return; }
   showUi(); closeSheet(); QUIET_UNTIL = Date.now() + 20000;
   $("go").disabled = true; $("pbar").hidden = false; $("pbar").firstElementChild.style.width = "0";
   try {
@@ -1279,7 +1345,7 @@ $("scan").addEventListener("submit", async (e) => {
 /* ---------- single drop / collection ---------- */
 $("one").addEventListener("submit", async (e) => {
   e.preventDefault();
-  ADDRESS = $("addr").value.trim();
+  ADDRESSES = parseAddrs($("addr").value); ADDRESS = ADDRESSES[0] || "";
   const raw = $("slug").value.trim();
   if (!raw) return;
   const me = raw.match(/magiceden\.io\/(?:marketplace|launchpad)\/([a-z0-9._-]+)/i);
@@ -1299,10 +1365,9 @@ $("one").addEventListener("submit", async (e) => {
       const slug = (os ? os[1] : raw).toLowerCase();
       if (MODE !== "evm") setMode("evm");
       $("status").textContent = `Checking ${slug}…`;
-      const res = await checkOne(ADDRESS, slug);
+      const res = await checkMerged(slug);
       if (res.error) throw new Error(res.error);
       ROWS.set(slug, res);
-      if (res.status === "eligible" && !res.looksPublic) rememberEligible(slug, res.openStages);
       if (res.nextStart && res.nextStart > Date.now()) RECHECK.set(slug, res.nextStart + 2000);
       if (res.status === "ended") loadHoldings([res]);
       startTicker(); render(); openSheet("os:" + slug);
@@ -1499,6 +1564,8 @@ $("out").addEventListener("click", (e) => {
   if (e.target.closest("a.lk")) return;
   const tr = e.target.closest("tr.row"); if (tr) openSheet(tr.dataset.id);
 });
+$("sigf").addEventListener("click", () => { SIGF = !SIGF; $("sigf").classList.toggle("on", SIGF); render(); });
+fetchJson("/api/alerts_config").then((c) => { TGCFG.enabled = !!c.enabled; TGCFG.bot = c.bot; if (TGCFG.enabled) { $("tgpill").hidden = false; $("tgpill").href = `https://t.me/${TGCFG.bot}`; if (ITEMS.size) render(); } }).catch(() => {});
 $("dense").addEventListener("click", () => { const on = document.body.classList.toggle("dense"); $("dense").classList.toggle("on", on); try { localStorage.setItem("mintradar:dense", on ? "1" : ""); } catch {} });
 try { if (localStorage.getItem("mintradar:dense")) { document.body.classList.add("dense"); $("dense").classList.add("on"); } } catch {}
 $("sound").addEventListener("click", () => { SOUND = !SOUND; $("sound").classList.toggle("on", SOUND); $("sound").textContent = SOUND ? "🔔 SOUND" : "🔇 SOUND"; if (SOUND) beep(); });
@@ -1518,6 +1585,7 @@ const COMMANDS = [
   { k: "GROUP", label: "Group by chain", run: () => $("seg").querySelector('[data-g="chain"]').click() },
   { k: "FILTER", label: "Show everything", run: () => { FILTER = "all"; render(); } },
   { k: "FILTER", label: "Hide what I can't mint (toggle)", run: () => $("hide").click() },
+  { k: "FILTER", label: "HOT+ signal only (toggle)", run: () => $("sigf").click() },
   { k: "PANEL", label: "Show / hide LaunchMyNFT widget", run: () => $("lmfold").click() },
 ];
 function palRender(q) {

@@ -3,6 +3,7 @@
 // volume and the categories ME files them under (pfps, gaming, art, …) so the UI can group.
 // Docs: GET /v2/marketplace/popular_collections, /v2/collections/{symbol}, /stats
 import { meFetch, cached, sol, collectionStats, collectionInfo, mapLimit, meCollectionUrl } from "./_magiceden.js";
+import { signalFor } from "./_signal.js";
 
 const RANGES = new Set(["1h", "1d", "7d", "30d"]);
 
@@ -37,6 +38,8 @@ export default async function handler(req, res) {
       if (stats[i]) { c.floor = stats[i].floor ?? c.floor; c.listed = stats[i].listed; c.avg24h = stats[i].avg24h; c.volume7d = stats[i].volume7d; }
       if (infos[i]) { c.categories = infos[i].categories; c.badged = infos[i].badged; c.twitter = infos[i].twitter; c.links = infos[i].links; if (!c.image) c.image = infos[i].image; }
     });
+    const sigs = await mapLimit(items, 4, (c) => signalFor({ links: c.links, image: c.image, verified: c.badged, verifiedLabel: "Magic Eden badge" }));
+    items.forEach((c, i) => { c.signal = sigs[i] || null; });
 
     res.setHeader("cache-control", "s-maxage=300, stale-while-revalidate=900");
     res.status(200).json({ chain: "solana", source: "magiceden", range, collections: items });

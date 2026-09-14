@@ -35,6 +35,7 @@ async function loadDeps() {
   ];
 }
 
+import { signalFor } from "./_signal.js";
 const HELIUS = process.env.HELIUS_API_KEY || "";
 const RPC_URL = process.env.QUICKNODE_RPC_URL || process.env.SOLANA_RPC_URL || (HELIUS ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS}` : "");
 const PROVIDER = HELIUS ? "helius" : RPC_URL ? (/quiknode|quicknode/i.test(RPC_URL) ? "quicknode" : "rpc") : "none";
@@ -203,7 +204,8 @@ export default async function handler(req, res) {
       const uniq = [...new Map(decoded.map((d) => [d.collectionMint, { collectionMint: d.collectionMint, kind: d.kind }])).values()];
       let meta = {};
       try { meta = await assetsDas(uniq.map((u) => u.collectionMint)); } catch { meta = await assetsOnchain(uniq, umis).catch(() => ({})); }
-      return decoded.map((d) => {
+      const sigs = await mapLimit(decoded, 4, (d) => { const m = meta[d.collectionMint] || {}; return signalFor({ links: { website: m.website || null, twitter: m.twitter || null, discord: m.discord || null }, image: m.image, verified: false }); });
+      return decoded.map((d, di) => {
         const m = meta[d.collectionMint] || {};
         const nowPhase = d.phases.find((p) => (p.startAt == null || p.startAt <= now) && (p.endAt == null || p.endAt > now));
         const nextPhase = d.phases.filter((p) => p.startAt && p.startAt > now).sort((a, b) => a.startAt - b.startAt)[0];
@@ -214,6 +216,7 @@ export default async function handler(req, res) {
           name: m.name || d.symbol || `Candy Machine ${d.candyMachine.slice(0, 4)}…`,
           image: m.image || null, description: m.description || "",
           links: { website: m.website || null, twitter: m.twitter || null, discord: m.discord || null },
+          signal: sigs[di] || null,
           status, phase: nowPhase || nextPhase || d.phases[0] || null, nextStart: nextPhase?.startAt || null,
           url: `https://solscan.io/account/${d.candyMachine}`,
           collectionUrl: `https://magiceden.io/item-details/${d.collectionMint}`,

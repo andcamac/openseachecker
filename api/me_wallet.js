@@ -6,6 +6,7 @@
 //   - SOL sitting in the ME escrow (GET /wallets/{address}/escrow_balance)
 // Read-only. Nothing is signed or sent.
 import { meFetch, cached, isSolAddress, pick, toMs, sol, collectionStats, collectionInfo, mapLimit, meCollectionUrl, meItemUrl } from "./_magiceden.js";
+import { signalFor } from "./_signal.js";
 
 const MAX_TOKENS = 1500;
 const STATS_FOR = 20;   // collections to price (largest holdings first)
@@ -87,6 +88,8 @@ export default async function handler(req, res) {
       if (infos[i]) { c.categories = infos[i].categories; c.badged = infos[i].badged; c.links = infos[i].links; if (!c.image) c.image = infos[i].image; if (infos[i].name) c.name = infos[i].name; }
       c.url = meCollectionUrl(c.symbol);
     });
+    const sigs = await mapLimit(priced, 4, (c) => signalFor({ links: c.links, image: c.image, verified: c.badged, verifiedLabel: "Magic Eden badge" }));
+    priced.forEach((c, i) => { c.signal = sigs[i] || null; });
 
     const activity = acts.map((a) => ({
       type: a.type || "unknown",

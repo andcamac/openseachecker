@@ -93,6 +93,56 @@ creator deploys them), so the app embeds its live explore page — LATEST / HOT 
 panel. The frame only loads while the panel is open. It's also linked from the Solana section of
 CALENDARS.
 
+## Telegram alerts
+
+The radar works with the tab closed. Optional — the 🔔 buttons only appear once it's configured.
+
+1. **Create a bot**: message [@BotFather](https://t.me/BotFather) → `/newbot` → copy the token and the
+   bot's username.
+2. **Create a free Redis**: [Upstash](https://console.upstash.com) → Create database → copy the
+   **REST URL** and **REST token** (the free tier is far more than enough).
+3. **Vercel → Settings → Environment Variables**, then redeploy:
+   - `TELEGRAM_BOT_TOKEN` — from BotFather
+   - `TELEGRAM_BOT_USERNAME` — e.g. `MintRadarBot` (no `@`)
+   - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
+   - `ALERTS_SECRET` — any long random string
+4. **Register the webhook** once (replace the placeholders):
+
+       curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<your-app>/api/tg&secret_token=<ALERTS_SECRET>"
+
+5. **Schedule the tick** every ~5 minutes. `vercel.json` already declares a Vercel Cron
+   (`*/5 * * * *`) — on Hobby plans Vercel only runs crons once a day, so either upgrade or point a
+   free scheduler such as [cron-job.org](https://cron-job.org) at
+   `https://<your-app>/api/alerts_tick?secret=<ALERTS_SECRET>`. (Vercel's own `CRON_SECRET` bearer
+   header is accepted too.)
+
+**What users get.** In the app, every mint's detail sheet has a **🔔 TELEGRAM ALERT** button — it
+deep-links into the bot and starts the watch with one tap. In the bot: `/watch <id>`, `/unwatch`,
+`/list`, `/new` (ping on every new on-chain Solana candy machine) and `/wallet 0x…` (ping when that
+wallet becomes eligible for a live OpenSea drop). Alerts fire 10 minutes before a phase opens, when
+it opens, on new deployments, and on wallet eligibility; each is de-duplicated in Redis so a repeated
+tick never spams.
+
+## Signal score
+
+Every project gets a 0-100 **signal** from free public data — no paid X API:
+
+- **Discord**: live member and online counts through the public invite API (a dead invite is a
+  negative), plus verified/partnered servers.
+- **Marketplace verification**: OpenSea safelist status, Magic Eden badge.
+- **Completeness**: website, X, artwork present.
+
+Tiers are **COLD → WARM → HOT → BLAZING**, shown as a chip under each circle and as a sortable
+column in the table, with the reasoning in the detail sheet. **HOT+ ONLY** in the toolbar filters the
+board down to projects with a real community behind them.
+
+## Multi-wallet scanning
+
+Paste several addresses separated by commas (up to 10) — all EVM or all Solana. Each drop is checked
+for every wallet, the board shows the best result with a **YOU'RE IN · 2/5** count, and the detail
+sheet breaks it down per wallet. Solana holdings, portfolio value and activity merge across wallets.
+No wallet connection or signature at any point — the app only ever reads public addresses.
+
 ## Live feed, table view, prices, trust signals
 
 - **LIVE ticker** under the header: new on-chain deployments, newly listed mints and phase

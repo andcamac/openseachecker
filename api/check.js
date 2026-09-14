@@ -2,6 +2,7 @@
 // Checks ONE drop: which stages are open, and can OpenSea build a mint tx for this address?
 // Uses only OpenSea's documented public API. Never sends a transaction.
 import { apiKey, osFetch, pick, toMs, collectionLinks } from "./_opensea.js";
+import { signalFor } from "./_signal.js";
 
 const fmtStage = (s) => s && ({
   type: s.stage_type || null,
@@ -27,6 +28,7 @@ export default async function handler(req, res) {
 
   const [det, links] = await Promise.all([osFetch(key, `/drops/${slug}`), collectionLinks(key, slug)]);
   const drop = det.body || {};
+  const signal = await signalFor({ links, image: drop.image_url, verified: !!links?.verified, verifiedLabel: "OpenSea verified" }).catch(() => null);
   const base = {
     slug,
     name: drop.collection_name || pick(drop, "collectionName", "name") || slug,
@@ -35,6 +37,8 @@ export default async function handler(req, res) {
     contract: drop.contract_address || null,
     url: drop.opensea_url || `https://opensea.io/collection/${slug}`,
     links: links || null,
+    verified: !!links?.verified,
+    signal,
     ...(debug ? { raw: drop } : {}),
   };
   if (!det.ok) return res.status(200).json({ ...base, status: det.status === 404 ? "not_a_drop" : "skipped", reason: drop.error || drop.detail || `HTTP ${det.status}` });

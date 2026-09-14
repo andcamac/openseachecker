@@ -51,6 +51,9 @@ export async function collectionLinks(key, slug) {
       discord: body.discord_url || null,
       instagram: body.instagram_username ? `https://instagram.com/${body.instagram_username}` : null,
       telegram: body.telegram_url || null,
+      verified: ["verified", "approved"].includes(String(body.safelist_status || "").toLowerCase()),
+      safelist: body.safelist_status || null,
+      owners: body.total_supply ?? null,
     };
   } catch {}
   LINKS.set(slug, { val, exp: Date.now() + 6 * 3600_000 });

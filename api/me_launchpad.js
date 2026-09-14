@@ -4,6 +4,7 @@
 // Launched collections that already trade on the marketplace get a floor price attached,
 // so you can see at a glance whether a mint is already above/below its mint price.
 import { meFetch, cached, toMs, pick, collectionStats, collectionInfo, mapLimit, meLaunchpadUrl, meCollectionUrl } from "./_magiceden.js";
+import { signalFor } from "./_signal.js";
 
 const LIVE_WINDOW = 48 * 3600_000;   // a launch is "live" for two days after its start (ME has no sold-out flag)
 
@@ -70,6 +71,8 @@ export default async function handler(req, res) {
     ]);
     launched.forEach((d, i) => { if (stats[i]) { d.floor = stats[i].floor; d.listed = stats[i].listed; d.volume7d = stats[i].volume7d; } });
     withInfo.forEach((d, i) => { if (infos[i]) { d.categories = infos[i].categories; d.badged = infos[i].badged; d.links = infos[i].links; } });
+    const sigs = await mapLimit(withInfo, 4, (d) => signalFor({ links: d.links, image: d.image, verified: d.badged, verifiedLabel: "Magic Eden badge" }));
+    withInfo.forEach((d, i) => { d.signal = sigs[i] || null; });
 
     res.setHeader("cache-control", "s-maxage=120, stale-while-revalidate=600");
     res.status(200).json({

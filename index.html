@@ -1,0 +1,1702 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mint Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#13140e; --panel:#363732; --card:#1f201a; --chip:#43443f;
+  --text:#ffffff; --soft:#e2e2e2; --muted:#7b7b78; --dim:#5a5b56;
+  --orange:#ff6002;
+  --bs:clamp(78px, 21vw, 124px);          /* bubble diameter */
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:12px/1.45 "Space Mono",ui-monospace,Menlo,Consolas,monospace}
+.wrap{max-width:1400px;margin:0 auto;padding:16px clamp(16px,3vw,24px) 80px}
+a{color:inherit;text-decoration:none}
+img{max-width:100%}
+button{font:inherit}
+
+/* ---------- header ---------- */
+.top{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.brand{font-weight:700;letter-spacing:.06em;font-size:15px;display:flex;align-items:center;gap:10px}
+.brand b{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--orange);color:#fff;font-size:16px}
+.brand small{color:var(--muted);font-weight:400;font-size:10px;letter-spacing:.1em}
+.forms{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;flex:1;justify-content:flex-end}
+form{display:flex;gap:8px;flex-wrap:wrap}
+input,select{background:var(--panel);border:1px solid var(--chip);color:var(--text);padding:11px 14px;border-radius:999px;font:inherit;outline:none;min-width:0}
+input:focus{border-color:var(--orange)}
+input#addr{width:min(46vw,440px);flex:1 1 220px}
+input#slug{width:min(34vw,300px);flex:1 1 200px}
+input::placeholder{color:var(--dim)}
+select{appearance:none;-webkit-appearance:none;padding-right:28px;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+.btn{background:var(--orange);color:#fff;border:0;padding:11px 18px;border-radius:999px;font-weight:700;letter-spacing:.06em;cursor:pointer;white-space:nowrap}
+.btn.ghost{background:var(--panel);border:1px solid var(--chip)}
+.btn:disabled{opacity:.45;cursor:default}
+@media (max-width:720px){
+  .forms{margin-left:0;width:100%}
+  form{width:100%}
+  input#addr,input#slug{width:100%;flex:1 1 100%}
+  form select{flex:1 1 auto}
+  .btn{flex:0 0 auto}
+}
+
+/* ---------- panels ---------- */
+.panel{background:var(--panel);border-radius:18px;padding:14px 16px;margin-bottom:12px}
+.panel h2{margin:0;font-size:11px;letter-spacing:.1em;text-transform:uppercase;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.panel h2 span.tt{background:var(--card);padding:6px 12px;border-radius:999px;font-weight:700}
+.panel h2 em{color:var(--muted);font-style:normal;font-weight:400;letter-spacing:0;text-transform:none;flex:1 1 200px;min-width:0}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.chips:empty{display:none}
+.toggle{margin-left:auto;background:var(--card);border:0;color:var(--muted);font-size:10px;letter-spacing:.1em;padding:6px 12px;border-radius:999px;cursor:pointer}
+.toggle:hover{color:var(--text)}
+.panel.folded .chips,.panel.folded .tl,.panel.folded .acts,.panel.folded #ocbody{display:none}
+.calctl{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.pill{background:var(--card);border:0;color:var(--muted);font-size:10px;letter-spacing:.08em;padding:6px 11px;border-radius:999px;cursor:pointer}
+.pill.on{background:var(--soft);color:#13140e}
+.pill#calmine.on{background:var(--orange);color:#fff}
+.chip{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--orange);border-radius:999px;padding:6px 14px 6px 6px;max-width:100%;cursor:pointer;text-align:left}
+.chip img,.chip .ph2{width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--chip);flex:0 0 auto;display:grid;place-items:center;color:var(--muted)}
+.chip .n{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .s{color:var(--orange);font-size:11px}
+.chip .s i{color:var(--muted);font-style:normal}
+.chip.pub{border-color:var(--chip)}.chip.pub .s{color:var(--soft)}
+.chip.q{border-color:transparent;background:#2a2b26}.chip.q .s{color:var(--muted)}
+.chip.sol{border-color:var(--orange)}.chip.sol .s{color:var(--orange)}
+
+/* timeline */
+.tl{margin-top:12px;display:flex;flex-direction:column;gap:2px}
+.tl .row{display:grid;grid-template-columns:78px 92px 1fr auto;gap:10px;align-items:center;padding:7px 10px;border-radius:10px;background:var(--card);font-size:11px}
+.tl .row.soon{background:#2a2b26}
+.tl .row.mine{background:#2a1a0e;box-shadow:inset 0 0 0 1px var(--orange)}
+.tl .row.mine .you{color:var(--orange);font-weight:700}
+.tl .empty2{color:var(--muted);padding:14px 2px;font-size:11px}
+.tl .when{color:var(--soft);font-weight:700}
+.tl .ph{font-weight:700;font-size:10px;letter-spacing:.08em;padding:3px 8px;border-radius:999px;background:var(--chip);color:var(--muted);text-align:center}
+.tl .ph.pub{background:var(--soft);color:#13140e}
+.tl .ph.al{background:#4a2a12;color:var(--orange)}
+.tl .ph.sol{background:#4a2a12;color:var(--orange)}
+.tl .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tl .meta2{color:var(--muted);font-size:10px;white-space:nowrap}
+.tl .day{color:var(--dim);font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin:8px 0 2px}
+@media (max-width:600px){
+  .tl .row{grid-template-columns:auto 1fr;grid-template-areas:"when ph" "nm nm" "tail tail";gap:4px 8px}
+  .tl .row .when{grid-area:when}.tl .row .ph{grid-area:ph;justify-self:start}.tl .row .nm{grid-area:nm;white-space:normal}.tl .row .tail{grid-area:tail}
+}
+
+/* activity list (solana) */
+.acts{margin-top:12px;display:flex;flex-direction:column;gap:2px}
+.acts .row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 10px;border-radius:10px;background:var(--card);font-size:11px}
+.acts .k{font-weight:700;font-size:10px;letter-spacing:.08em;padding:3px 8px;border-radius:999px;background:var(--chip);color:var(--muted)}
+.acts .k.buy{background:#4a2a12;color:var(--orange)}.acts .k.sell{background:#4a2a12;color:var(--orange)}
+.acts .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acts .meta2{color:var(--muted);font-size:10px;white-space:nowrap}
+
+/* ---------- controls bar ---------- */
+.bar{display:flex;gap:8px;align-items:center;margin:12px 0 8px;flex-wrap:wrap}
+.tab{background:var(--panel);border:0;border-radius:999px;padding:7px 14px;color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.06em;cursor:pointer;white-space:nowrap}
+.tab b{margin-left:6px;color:var(--text)}
+.tab.on{background:var(--soft);color:#13140e}.tab.on b{color:#13140e}
+.tab.acc{color:var(--orange)}.tab.acc.on{background:var(--orange);color:#fff}.tab.acc.on b{color:#fff}
+.tab.solc{color:var(--orange)}.tab.solc.on{background:var(--orange);color:#13140e}.tab.solc.on b{color:#13140e}
+.seg{display:flex;background:var(--panel);border-radius:999px;padding:3px;gap:2px}
+.seg button{background:transparent;border:0;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.08em;padding:5px 11px;border-radius:999px;cursor:pointer}
+.seg button.on{background:var(--card);color:var(--text)}
+.seg .lbl2{color:var(--dim);font-size:9px;letter-spacing:.1em;align-self:center;padding:0 6px 0 10px}
+.tog{margin-left:auto;display:flex;gap:8px;align-items:center;color:var(--muted);font-size:11px;letter-spacing:.06em;cursor:pointer;user-select:none}
+.sw{width:38px;height:20px;border-radius:10px;background:var(--chip);position:relative;transition:background .15s;flex:0 0 auto}
+.sw:after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:7px;background:var(--muted);transition:transform .15s,background .15s}
+.tog.on .sw{background:#4a2a12}.tog.on .sw:after{transform:translateX(18px);background:var(--orange)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+@media (max-width:720px){
+  .tabs{width:100%;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tog{margin-left:0}
+}
+
+.status{color:var(--muted);margin:10px 0;min-height:18px}
+.pbar{height:3px;background:var(--card);border-radius:2px;overflow:hidden;margin:6px 0 2px}
+.pbar i{display:block;height:100%;background:var(--orange);width:0;transition:width .2s}
+
+/* ---------- groups of bubbles ---------- */
+.group{margin:18px 0 6px}
+.gh{display:flex;align-items:center;gap:10px;margin:0 0 10px;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;user-select:none}
+.gh b{background:var(--panel);color:var(--text);padding:4px 12px;border-radius:999px;letter-spacing:.1em}
+.gh b.you{background:var(--orange);color:#fff}
+.gh b.sol{background:#4a2a12;color:var(--orange)}
+.gh b.pub{background:var(--soft);color:#13140e}
+.gh span{color:var(--dim)}
+.gh i{margin-left:auto;font-style:normal;color:var(--dim);font-size:10px}
+.gh:after{content:"";flex:1;height:1px;background:var(--card);order:1}
+.gh i{order:2}
+.group.folded .bubbles{display:none}
+.bubbles{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--bs),1fr));gap:clamp(10px,2vw,18px) clamp(6px,1.5vw,12px);justify-items:center}
+
+.bub{position:relative;width:100%;max-width:calc(var(--bs) + 24px);background:none;border:0;padding:8px 4px 6px;border-radius:20px;color:inherit;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent}
+.bub .ring{width:var(--bs);height:var(--bs);border-radius:50%;padding:4px;background:conic-gradient(var(--rc,var(--chip)) var(--p,0%),var(--card) 0);display:grid;place-items:center;transition:transform .15s}
+.bub:hover .ring,.bub.on .ring{transform:scale(1.05)}
+.bub.on .ring{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--rc,var(--soft))}
+.bub .ring img,.bub .ring .ph2{width:100%;height:100%;border-radius:50%;object-fit:cover;background:var(--panel);display:grid;place-items:center;color:var(--dim);font-size:22px;border:3px solid var(--bg)}
+.bub .tag{position:absolute;top:calc(var(--bs) - 14px);left:50%;transform:translateX(-50%);font-size:8px;font-weight:700;letter-spacing:.1em;padding:4px 8px;border-radius:999px;white-space:nowrap;background:var(--chip);color:var(--muted);border:2px solid var(--bg);max-width:calc(var(--bs) + 10px);overflow:hidden;text-overflow:ellipsis}
+.bub .tag.g{background:var(--orange);color:#fff}
+.bub .tag.y{background:var(--soft);color:#13140e}
+.bub .tag.s{background:var(--orange);color:#13140e}
+.bub .tag.miss{background:#4a2a12;color:var(--orange)}
+.bub .nm{font-weight:700;font-size:11px;line-height:1.25;margin-top:6px;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.bub .sub{font-size:10px;color:var(--muted);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.bub .sub.live{color:var(--orange);font-weight:700}
+.bub .sub.sol{color:var(--orange)}
+.bub .lks{display:flex;gap:5px;justify-content:center;margin-top:6px;flex-wrap:wrap}
+.bub .lk{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--card);border:1px solid var(--chip);color:var(--muted);font-size:9px;font-weight:700;letter-spacing:.04em;text-decoration:none;transition:transform .12s,color .12s,border-color .12s}
+.bub .lk:hover{transform:scale(1.15);color:var(--text);border-color:var(--soft)}
+.bub .lk.mkt{color:var(--orange);border-color:#4a2a12}
+.bub .lk svg{width:12px;height:12px;fill:currentColor}
+/* wallets you can actually mint with — the whole bubble lights up */
+.bub.elig{background:#2a1a0e;box-shadow:inset 0 0 0 1px rgba(255,96,2,.55)}
+.bub.elig .nm{color:#fff}
+.bub.elig .sub{color:var(--orange)}
+table.tv tr.elig td{background:#2a1a0e}
+table.tv tr.elig td:first-child{box-shadow:inset 3px 0 0 var(--orange)}
+table.tv tr.elig:hover td{background:#34200f}
+.bub.you{--rc:var(--orange)}
+.bub.pub{--rc:var(--soft)}
+.bub.solr{--rc:var(--orange)}
+.bub.q{--rc:var(--chip)}
+.bub.dim{opacity:.55}.bub.dim:hover{opacity:1}
+.bub .chn{position:absolute;top:2px;right:calc(50% - var(--bs)/2 - 2px);font-size:8px;font-weight:700;letter-spacing:.08em;background:var(--card);color:var(--muted);padding:3px 6px;border-radius:999px;border:2px solid var(--bg)}
+.bub .chn.sol{color:var(--orange)}
+
+/* on-chain Solana section */
+#ocpanel .bubbles{margin-top:2px}
+#ocpanel .tablewrap{margin-top:0}
+#ocpanel h2 em b{color:var(--soft)}
+
+/* ---------- detail sheet ---------- */
+.veil{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+.veil.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;z-index:50;background:var(--panel);box-shadow:0 -10px 40px rgba(0,0,0,.5);overflow:auto;transition:transform .25s;display:flex;flex-direction:column;
+  left:0;right:0;bottom:0;max-height:min(86vh,86dvh);border-radius:22px 22px 0 0;transform:translateY(105%);padding:8px 16px calc(20px + env(safe-area-inset-bottom))}
+.sheet{visibility:hidden;transition:transform .25s,visibility 0s .25s}
+.sheet.on{transform:none;visibility:visible;transition:transform .25s,visibility 0s}
+@media (min-width:900px){
+  .sheet{left:auto;top:0;bottom:0;right:0;width:400px;max-height:none;border-radius:22px 0 0 22px;transform:translateX(105%);padding:16px 18px 24px}
+}
+.sheet .grab{width:44px;height:4px;border-radius:2px;background:var(--chip);margin:4px auto 12px}
+@media (min-width:900px){.sheet .grab{display:none}}
+.sheet .x{position:absolute;top:10px;right:12px;background:var(--card);border:0;color:var(--muted);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:14px}
+.sh{display:flex;gap:14px;align-items:center;padding-right:36px}
+.sh .ring{width:76px;height:76px;flex:0 0 auto;border-radius:50%;padding:4px;background:conic-gradient(var(--rc,var(--chip)) var(--p,0%),var(--card) 0)}
+.sh .ring img,.sh .ring .ph2{width:100%;height:100%;border-radius:50%;object-fit:cover;background:var(--card);border:3px solid var(--panel);display:grid;place-items:center;color:var(--dim)}
+.sh .t{font-weight:700;font-size:15px;line-height:1.25}
+.sh .m{color:var(--muted);font-size:10px;margin-top:4px;letter-spacing:.06em}
+.badge{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.1em;padding:4px 8px;border-radius:999px;white-space:nowrap;margin-top:6px}
+.badge.g{background:var(--orange);color:#fff}
+.badge.y{background:var(--soft);color:#13140e}
+.badge.s{background:var(--orange);color:#13140e}
+.badge.d{background:var(--chip);color:var(--muted)}
+.badge.miss{background:#4a2a12;color:var(--orange)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:14px 0}
+.kv div{background:var(--card);border-radius:12px;padding:8px 10px}
+.kv .l{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.kv .v{font-weight:700;font-size:14px;margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+.kv .v.live{color:var(--orange)}
+.kv .v.sol{color:var(--orange)}
+.kv .v small{color:var(--muted);font-weight:400;font-size:10px}
+.prog{height:5px;background:var(--card);border-radius:3px;margin:4px 0 6px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--orange)}
+.stages{display:flex;background:var(--card);border-radius:12px;overflow:hidden;margin:6px 0 12px}
+.st{flex:1;min-width:0;padding:8px 6px;border-right:1px solid var(--panel);font-size:10px;text-align:center;color:var(--dim)}
+.st:last-child{border-right:0}
+.st b{display:block;font-size:10px;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis}
+.st small{display:block;font-size:9px;margin-top:2px;color:var(--dim)}
+.st.ok{background:var(--orange)}.st.ok b,.st.ok small{color:#fff}
+.st.pubs b{color:var(--soft)}.st.pubs small{color:var(--muted)}
+.st.pubs.live{background:var(--soft)}.st.pubs.live b{color:#13140e}.st.pubs.live small{color:#4a4b46}
+.st.no b{color:var(--dim);text-decoration:line-through}
+.st.q b{color:var(--muted)}
+.sheet p.desc{color:var(--soft);font-size:11px;line-height:1.6;margin:0 0 12px;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.cats{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.cats span{background:var(--card);color:var(--muted);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:999px}
+.mini{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.mini a,.mini div{width:48px;height:48px;border-radius:50%;overflow:hidden;background:var(--card);flex:0 0 auto;position:relative}
+.mini img{width:100%;height:100%;object-fit:cover}
+.mini .lp{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);color:var(--orange);font-size:8px;text-align:center;padding:1px 0}
+.sheet h4{margin:12px 0 6px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.foot{display:flex;gap:8px;margin-top:auto;padding-top:12px;flex-wrap:wrap}
+.foot a,.foot button{flex:1 1 120px;padding:10px;font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text);background:var(--card);border:0;border-radius:999px;text-align:center;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.foot a.pri{background:#13140e;color:var(--orange)}
+.foot a.pri.sol{color:var(--orange)}
+.sales{display:flex;flex-direction:column;gap:2px}
+.sales div{display:flex;justify-content:space-between;gap:8px;background:var(--card);border-radius:8px;padding:5px 10px;font-size:10px;color:var(--soft)}
+.sales div span:last-child{color:var(--muted)}
+
+/* ---------- LaunchMyNFT widget ---------- */
+.lmnft{margin-top:12px;background:var(--card);border-radius:14px;overflow:hidden;position:relative}
+.lmnft iframe{display:block;width:100%;height:min(70vh,720px);border:0;background:var(--card)}
+.lmnft .ph3{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:11px;pointer-events:none}
+.lmnft.loaded .ph3{display:none}
+@media (max-width:600px){.lmnft iframe{height:80vh}}
+.panel.folded .lmnft{display:none}
+.lmnft-src{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ---------- live ticker ---------- */
+.ticker{display:flex;align-items:center;gap:10px;margin:0 0 10px;overflow:hidden;background:var(--panel);border-radius:999px;padding:6px 8px 6px 6px}
+.ticker .live{display:flex;align-items:center;gap:6px;background:var(--card);color:var(--orange);font-size:9px;font-weight:700;letter-spacing:.12em;padding:5px 10px;border-radius:999px;flex:0 0 auto}
+.ticker .live i{width:6px;height:6px;border-radius:50%;background:var(--orange);animation:blink 1.4s infinite}
+@keyframes blink{50%{opacity:.25}}
+.ticker .feed{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.ticker .feed::-webkit-scrollbar{display:none}
+.ticker .ev{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--card);border-radius:999px;padding:4px 10px 4px 4px;font-size:10px;color:var(--soft);cursor:pointer;white-space:nowrap}
+.ticker .ev img,.ticker .ev .ph2{width:20px;height:20px;border-radius:50%;object-fit:cover;background:var(--chip)}
+.ticker .ev b{font-size:8px;letter-spacing:.1em;padding:2px 6px;border-radius:999px;background:var(--chip);color:var(--muted)}
+.ticker .ev b.hot{background:var(--orange);color:#fff}
+.ticker .ev b.new{background:var(--soft);color:#13140e}
+.ticker .ev small{color:var(--muted)}
+.ticker .fresh{flex:0 0 auto;color:var(--dim);font-size:9px;letter-spacing:.06em;padding-right:6px;white-space:nowrap}
+.ticker .fresh.stale{color:var(--orange)}
+@media (max-width:600px){.ticker .fresh{display:none}}
+
+/* opened pulse */
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,96,2,.7)}70%{box-shadow:0 0 0 14px rgba(255,96,2,0)}100%{box-shadow:0 0 0 0 rgba(255,96,2,0)}}
+.bub.pulse .ring{animation:pulse 1.6s ease-out 6}
+
+/* signal dots (source · chain) */
+.bub .chn{display:flex;align-items:center;gap:4px}
+.bub .chn i{width:6px;height:6px;border-radius:50%;background:var(--dim);display:inline-block}
+.bub .chn i.os{background:var(--soft)}.bub .chn i.me{background:var(--orange)}.bub .chn i.oc{background:var(--muted)}
+.bub .nm .vf{color:var(--soft);font-size:10px;margin-left:3px}
+.bub.risk .ring{filter:grayscale(.6)}
+.bub .tag.warn{background:var(--card);color:var(--muted);border-color:var(--chip);border-style:dashed}
+.bub .fr{position:absolute;top:2px;left:calc(50% - var(--bs)/2 - 2px);font-size:8px;font-weight:700;letter-spacing:.06em;background:var(--soft);color:#13140e;padding:3px 6px;border-radius:999px;border:2px solid var(--bg)}
+.bub .usd{color:var(--dim)}
+
+/* signal tier */
+.sig{display:inline-block;font-size:8px;font-weight:700;letter-spacing:.1em;padding:2px 6px;border-radius:999px;background:var(--card);color:var(--dim);border:1px solid var(--chip);vertical-align:middle;margin-left:4px}
+.sig.warm{color:var(--muted)}.sig.hot{color:var(--soft);border-color:var(--soft)}.sig.blazing{color:#fff;background:var(--orange);border-color:var(--orange)}
+.bub .sig{margin:4px 0 0}
+.kv .why{font-size:10px;color:var(--muted);font-weight:400;line-height:1.5;white-space:normal}
+.wl{display:flex;flex-direction:column;gap:3px;margin:0 0 12px}
+.wl div{display:flex;justify-content:space-between;gap:8px;background:var(--card);border-radius:8px;padding:6px 10px;font-size:10px}
+.wl div b{color:var(--orange)}.wl div i{font-style:normal;color:var(--muted)}
+.foot a.tg{background:#4a2a12;color:var(--orange)}
+.pill.tg{color:var(--orange)}
+
+/* dense mode */
+body.dense{--bs:clamp(64px,15vw,88px)}
+body.dense .bubbles{gap:8px 4px}
+body.dense .bub .nm{font-size:10px;-webkit-line-clamp:1}
+body.dense .bub .lks{display:none}
+body.dense .bub .sub{font-size:9px}
+
+/* ---------- table view ---------- */
+.tablewrap{overflow-x:auto;background:var(--panel);border-radius:16px;margin-top:12px}
+table.tv{width:100%;border-collapse:collapse;font-size:11px;min-width:900px}
+table.tv th{position:sticky;top:0;background:var(--panel);text-align:left;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:12px 10px;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:1px solid var(--card)}
+table.tv th.on{color:var(--text)}
+table.tv th:hover{color:var(--soft)}
+table.tv td{padding:8px 10px;border-bottom:1px solid var(--card);vertical-align:middle;white-space:nowrap}
+table.tv tr.row:hover td{background:var(--card)}
+table.tv tr.row{cursor:pointer}
+table.tv tr.dim td{opacity:.55}
+table.tv .nmc{display:flex;align-items:center;gap:10px;min-width:200px}
+table.tv .nmc img,table.tv .nmc .ph2{width:30px;height:30px;border-radius:50%;object-fit:cover;background:var(--card);flex:0 0 auto;display:grid;place-items:center;color:var(--dim);font-size:12px}
+table.tv .nmc b{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;display:block}
+table.tv .nmc small{color:var(--muted);display:block;font-size:9px}
+table.tv .st2{font-size:9px;font-weight:700;letter-spacing:.08em;padding:3px 8px;border-radius:999px;background:var(--chip);color:var(--muted)}
+table.tv .st2.you{background:var(--orange);color:#fff}
+table.tv .st2.pub{background:var(--soft);color:#13140e}
+table.tv .bar2{width:90px;height:4px;background:var(--card);border-radius:2px;overflow:hidden;display:inline-block;vertical-align:middle;margin-left:6px}
+table.tv .bar2 i{display:block;height:100%;background:var(--orange)}
+table.tv .lks{display:flex;gap:4px}
+table.tv .lk{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--card);border:1px solid var(--chip);color:var(--muted);font-size:8px;font-weight:700}
+table.tv .lk svg{width:10px;height:10px;fill:currentColor}
+table.tv .lk.mkt{color:var(--orange)}
+table.tv .cd2{font-weight:700;color:var(--soft)}
+table.tv .cd2.live{color:var(--orange)}
+table.tv .usd{color:var(--dim);font-size:10px}
+table.tv .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;background:var(--dim)}
+table.tv .dot.os{background:var(--soft)}table.tv .dot.me{background:var(--orange)}table.tv .dot.oc{background:var(--muted)}
+
+/* ---------- command palette ---------- */
+.pal{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;padding:12vh 16px 16px}
+.pal.on{display:flex}
+.pal .box{width:min(640px,100%);background:var(--panel);border-radius:18px;border:1px solid var(--chip);box-shadow:0 20px 80px rgba(0,0,0,.6);overflow:hidden}
+.pal input{width:100%;border:0;border-bottom:1px solid var(--chip);border-radius:0;background:var(--panel);padding:16px 18px;font-size:13px}
+.pal .list{max-height:50vh;overflow:auto}
+.pal .it{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--soft);font-size:12px}
+.pal .it.on,.pal .it:hover{background:var(--card);color:var(--text)}
+.pal .it .k{font-size:9px;letter-spacing:.12em;color:var(--muted);background:var(--card);padding:3px 8px;border-radius:999px;flex:0 0 auto;min-width:64px;text-align:center}
+.pal .it.on .k{background:var(--chip)}
+.pal .it img,.pal .it .ph2{width:24px;height:24px;border-radius:50%;object-fit:cover;background:var(--card);flex:0 0 auto}
+.pal .it span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pal .it small{color:var(--dim)}
+.pal .hint{padding:8px 16px;color:var(--dim);font-size:9px;letter-spacing:.08em;border-top:1px solid var(--card)}
+.kbd{font-size:9px;color:var(--dim);border:1px solid var(--chip);border-radius:6px;padding:2px 6px;margin-left:8px}
+@media (max-width:720px){.kbd{display:none}}
+
+/* ---------- calendars view ---------- */
+.cal{position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;display:none;padding:16px clamp(16px,3vw,24px) 60px}
+.cal.on{display:block}
+@media (min-width:900px){.cal{inset:24px;border-radius:22px;box-shadow:0 20px 80px rgba(0,0,0,.6);border:1px solid var(--chip)}}
+.cal .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;position:sticky;top:0;background:var(--bg);padding:6px 0 10px;z-index:1}
+.cal .head h3{margin:0;font-size:15px;letter-spacing:.06em;display:flex;align-items:center;gap:10px}
+.cal .head h3 b{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--orange);color:#fff;font-size:15px}
+.cal .head em{color:var(--muted);font-style:normal;font-size:11px;flex:1 1 200px}
+.cal .head .x2{background:var(--panel);border:1px solid var(--chip);color:var(--text);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:14px}
+.cal .chainh{display:flex;align-items:center;gap:10px;margin:22px 0 10px;color:var(--muted);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.cal .chainh b{background:var(--soft);color:#13140e;padding:5px 12px;border-radius:999px}
+.cal .chainh:after{content:"";flex:1;height:1px;background:var(--card)}
+.cal .src{background:var(--panel);border-radius:16px;padding:12px 14px;margin-bottom:10px}
+.cal .src h4{margin:0 0 8px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;gap:10px;align-items:center}
+.cal .src h4 span{background:var(--card);color:var(--soft);padding:4px 10px;border-radius:999px}
+.cal .src h4 i{font-style:normal;color:var(--dim);font-weight:400;letter-spacing:0;text-transform:none}
+.cal .src .tl{margin-top:0}
+.cal .tl .ph.live{background:var(--orange);color:#fff}
+.cal .empty3{color:var(--dim);font-size:11px;padding:6px 2px}
+.cal .row .img{width:28px;height:28px;border-radius:50%;object-fit:cover;background:var(--chip);vertical-align:middle;margin-right:8px}
+@media (max-width:600px){.cal .row .img{display:none}}
+
+.legend{display:flex;gap:16px;margin-top:22px;color:var(--muted);font-size:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.note{color:var(--dim);font-size:10px;margin-top:10px;line-height:1.6}
+.empty{color:var(--muted);padding:20px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="brand"><b>◈</b>MINT RADAR <small>ETH · BASE · SOL</small></div>
+    <div class="forms">
+      <form id="scan">
+        <input id="addr" placeholder="wallet(s) — 0x… (OpenSea) or Solana base58 (Magic Eden), comma-separated for several" autocomplete="off" spellcheck="false">
+        <select id="chains" aria-label="Chains">
+          <option value="">Auto-detect</option>
+          <option value="ethereum">Ethereum</option>
+          <option value="base">Base</option>
+          <option value="ethereum,base">ETH + Base</option>
+          <option value="solana">Solana (Magic Eden)</option>
+        </select>
+        <button id="go" class="btn" type="submit">SCAN</button>
+        <button id="calbtn" class="btn ghost" type="button">CALENDARS</button>
+      </form>
+      <form id="one">
+        <input id="slug" placeholder="or one drop: OpenSea / Magic Eden URL or slug" autocomplete="off" spellcheck="false">
+        <button id="go1" class="btn ghost" type="submit">CHECK</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="panel" id="panel">
+    <h2><span class="tt">Your radar</span><em id="elig">Paste an EVM address to scan OpenSea drops, or a Solana address to scan Magic Eden — launchpad mints, your NFTs, trending collections. Nothing is signed or sent; only public APIs are read.</em>
+      <button class="toggle" id="fold" type="button">HIDE ▲</button></h2>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="panel" id="calpanel" hidden>
+    <h2><span class="tt">Mint calendar</span><em id="calmeta"></em>
+      <span class="calctl">
+        <button class="pill" id="calmine" type="button">MINE ONLY</button>
+        <button class="pill on" data-h="0" type="button">ALL</button>
+        <button class="pill" data-h="7" type="button">7D</button>
+        <button class="pill" data-h="30" type="button">30D</button>
+        <button class="toggle" id="calfold" type="button">HIDE &#9650;</button>
+      </span></h2>
+    <div class="tl" id="timeline"></div>
+  </div>
+
+  <div class="panel" id="actpanel" hidden>
+    <h2><span class="tt">Recent activity</span><em id="actmeta">your last trades, listings and bids on Magic Eden</em>
+      <button class="toggle" id="actfold" type="button">HIDE &#9650;</button></h2>
+    <div class="acts" id="acts"></div>
+  </div>
+
+  <div class="panel" id="lmpanel">
+    <h2><span class="tt">LaunchMyNFT · live mints</span><em>Solana mints go live on LaunchMyNFT the moment a creator deploys — there's no schedule to read, so the live explore page is embedded here. Prices are in each chain's native token.</em>
+      <span class="calctl">
+        <span class="lmnft-src">
+          <button class="pill on" data-lm="latest" type="button">LATEST</button>
+          <button class="pill" data-lm="hot" type="button">HOT</button>
+        </span>
+        <a class="pill" href="https://www.launchmynft.io/explore?sort=latest" target="_blank" rel="noopener" id="lmopen">OPEN ↗</a>
+        <button class="toggle" id="lmfold" type="button">HIDE &#9650;</button>
+      </span></h2>
+    <div class="lmnft" id="lmnft"><div class="ph3">Loading LaunchMyNFT…</div><iframe id="lmframe" title="LaunchMyNFT explore — live mints" loading="lazy" referrerpolicy="no-referrer-when-downgrade" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"></iframe></div>
+  </div>
+
+  <div class="ticker" id="ticker" hidden>
+    <span class="live"><i></i>LIVE</span>
+    <div class="feed" id="feed"></div>
+    <span class="fresh" id="fresh">—</span>
+  </div>
+
+  <div class="bar" id="bar" hidden>
+    <div class="tabs" id="tabs"></div>
+    <div class="seg" id="viewseg"><span class="lbl2">VIEW</span>
+      <button data-v="bubbles" class="on" type="button">CIRCLES</button>
+      <button data-v="table" type="button">TABLE</button>
+    </div>
+    <div class="seg" id="seg"><span class="lbl2">GROUP BY</span>
+      <button data-g="chain" class="on" type="button">CHAIN</button>
+      <button data-g="status" type="button">STATUS</button>
+      <button data-g="phase" type="button">PHASE</button>
+    </div>
+    <button class="pill" id="dense" type="button" title="Smaller circles, tighter grid">DENSE</button>
+    <button class="pill" id="sound" type="button" title="Beep when a phase opens">🔇 SOUND</button>
+    <button class="pill" id="sigf" type="button" title="Hide COLD-signal projects (no socials, no community)">HOT+ ONLY</button>
+    <a class="pill tg" id="tgpill" href="#" target="_blank" rel="noopener" hidden title="Telegram alerts">🔔 ALERTS</a>
+    <button class="pill" id="palbtn" type="button" title="Command palette">⌘K</button>
+    <div class="tog" id="hide"><span>HIDE WHAT I CAN'T MINT</span><div class="sw"></div></div>
+  </div>
+
+  <div class="status" id="status"></div>
+  <div class="pbar" id="pbar" hidden><i></i></div>
+
+  <div id="out"></div>
+
+  <div class="panel" id="ocpanel" hidden>
+    <h2><span class="tt">Solana · on-chain mints</span><em id="ocmeta">read straight from Candy Machine — every launchpad, and mints that aren't on any</em>
+      <button class="toggle" id="ocfold" type="button">HIDE &#9650;</button></h2>
+    <div id="ocbody"></div>
+  </div>
+
+  <div class="legend" id="legend" hidden>
+    <span><i style="background:#2a1a0e;box-shadow:inset 0 0 0 1px var(--orange);border-radius:3px"></i>Orange background = a scanned wallet is on this allowlist and can mint it now</span>
+    <span><i style="background:var(--orange)"></i>Orange ring: yours — eligible stage, NFTs you hold, launchpad minting now</span>
+    <span><i style="background:var(--soft)"></i>Public / market: open to anyone, trending, upcoming launches</span>
+    <span><i style="background:var(--chip)"></i>Not open yet / closed / not eligible</span>
+    <span>Ring fill = mint progress · Solana holdings: share of portfolio · Trending: rank</span>
+  </div>
+  <p class="note" id="note" hidden>
+    OpenSea can only confirm eligibility for a stage that is currently open, so future allowlist phases show “?” until they start — this page re-checks each drop the moment one of its phases opens, so leave the tab open.<br>
+    Magic Eden's launchpad has no allowlist check API: launches show price, supply, start time and — once launched — the secondary-market floor, so you can see whether a mint is trading above or below its mint price. Tap any circle for details.
+  </p>
+</div>
+
+<div class="pal" id="pal" aria-hidden="true"><div class="box">
+  <input id="palin" placeholder="Search a collection, paste an address or URL, or type a command…" autocomplete="off" spellcheck="false">
+  <div class="list" id="pallist"></div>
+  <div class="hint">↑↓ NAVIGATE · ENTER RUN · ESC CLOSE · ⌘K / CTRL+K TO OPEN</div>
+</div></div>
+<section class="cal" id="cal" aria-hidden="true">
+  <div class="head">
+    <h3><b>▦</b>CALENDARS</h3><em id="calvmeta">upcoming mints from Magic Eden and OpenSea, grouped by chain</em>
+    <span class="calctl" style="margin-left:0">
+      <button class="pill on" data-ch="0" type="button">ALL</button>
+      <button class="pill" data-ch="1" type="button">24H</button>
+      <button class="pill" data-ch="7" type="button">7D</button>
+      <button class="pill" data-ch="30" type="button">30D</button>
+      <button class="pill" id="calrefresh" type="button">REFRESH</button>
+    </span>
+    <button class="x2" id="calx" type="button" aria-label="Close">✕</button>
+  </div>
+  <div id="calbody"><div class="empty3">Loading…</div></div>
+</section>
+<div class="veil" id="veil"></div>
+<aside class="sheet" id="sheet" aria-hidden="true"><div class="grab"></div><button class="x" id="sx" type="button" aria-label="Close">✕</button><div id="sheetbody"></div></aside>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const CONCURRENCY = 4;
+const isEvm = (s) => /^0x[0-9a-fA-F]{40}$/.test(s);
+const isSol = (s) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s);
+
+/* ---------- formatting ---------- */
+const eth = (wei) => {
+  const n = Number(wei);
+  if (!Number.isFinite(n)) return String(wei);
+  if (n === 0) return "FREE";
+  const v = n / 1e18;
+  let out = v.toFixed(Math.min(18, Math.max(3, Math.ceil(-Math.log10(v)) + 2)));
+  out = out.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+  return out;
+};
+const solf = (n) => { if (n == null || !Number.isFinite(Number(n))) return "—"; n = Number(n); if (n === 0) return "FREE"; return "◎" + (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n >= 1 ? n.toFixed(2) : n.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")); };
+const usd = (n) => (n == null || !Number.isFinite(n) || n === 0 ? "" : n >= 1000 ? "$" + Math.round(n).toLocaleString() : n >= 1 ? "$" + n.toFixed(n >= 100 ? 0 : 2) : "$" + n.toFixed(3).replace(/0+$/, ""));
+const solUsd = (sol) => (PRICES.sol && sol != null ? usd(Number(sol) * PRICES.sol) : "");
+const ethUsd = (wei) => { const n = Number(wei); return PRICES.eth && Number.isFinite(n) && n > 0 ? usd((n / 1e18) * PRICES.eth) : ""; };
+const withUsd = (native, u) => (u ? `${native} <span class="usd">≈ ${u}</span>` : native);
+const stamp = (ms) => { const d = new Date(ms); const p = (n) => String(n).padStart(2, "0"); return `${p(d.getDate())}.${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+function countdown(ms) {
+  let s = Math.max(0, Math.floor((ms - Date.now()) / 1000));
+  const d = Math.floor(s / 86400); s -= d * 86400;
+  const h = Math.floor(s / 3600); s -= h * 3600;
+  const m = Math.floor(s / 60); s -= m * 60;
+  const p = (n) => String(n).padStart(2, "0");
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${p(m)}m`;
+  return `${m}m ${p(s)}s`;
+}
+function ago(ms) {
+  if (!ms) return "";
+  let s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+  if (s < 60) return `${s}s ago`; s = Math.floor(s / 60);
+  if (s < 60) return `${s}m ago`; s = Math.floor(s / 60);
+  if (s < 48) return `${s}h ago`; return `${Math.floor(s / 24)}d ago`;
+}
+const short = (a) => a ? `${a.slice(0, 4)}…${a.slice(-4)}` : "";
+
+/* ---------- stage classification (OpenSea) ---------- */
+function catOf(s) {
+  const l = String(s?.label || "");
+  if (s?.type === "public_sale" || /\bpublic\b/i.test(l)) return "PUBLIC";
+  if (/\b(gtd|guaranteed|guarantee)\b/i.test(l)) return "GTD";
+  if (/\b(fcfs|first[\s-]*come|waitlist|wait\s*list|oversubscribed|wl\s*2|allowlist\s*2)\b/i.test(l)) return "FCFS";
+  if (/\b(team|creator|reserve|founder)\b/i.test(l)) return "TEAM";
+  if (/\b(wl|whitelist|allowlist|presale)\b/i.test(l)) return "WL";
+  return l.toUpperCase().slice(0, 10) || "STAGE";
+}
+const isOpenNow = (s, now) => (s.startTime == null || s.startTime <= now) && (s.endTime == null || s.endTime > now);
+const isPast = (s, now) => s.endTime != null && s.endTime <= now;
+
+/* ---------- state ---------- */
+let ADDRESS = "";
+let ADDRESSES = [];            // every wallet in the current scan (ADDRESS is the first)
+const parseAddrs = (raw) => [...new Set(String(raw || "").split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean))].slice(0, 10);
+let SIGF = false;              // HOT+ ONLY filter
+const TGCFG = { enabled: false, bot: null };
+const tgLink = (id) => TGCFG.enabled ? `https://t.me/${TGCFG.bot}?start=${btoa(unescape(encodeURIComponent(id))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}` : null;
+let MODE = "evm";              // evm | sol — what the last scan was
+let ROWS = new Map();          // slug -> /api/check result (OpenSea)
+const HOLD = new Map();        // slug -> holdings (OpenSea)
+const ME = { launchpad: [], wallet: null, trending: [], collections: new Map() };   // Magic Eden
+const CHAIN_MINTS = { list: [], disabled: false, at: 0 };                            // Solana on-chain (Candy Machine via Helius)
+const PRICES = { sol: null, eth: null, at: 0 };
+let VIEW = "bubbles";
+let TSORT = { key: "status", dir: 1 };
+let SOUND = false;
+const FRESH = { chain: 0, me: 0, os: 0 };   // last successful refresh per source
+const SEEN_IDS = new Set();                 // ids seen before → anything else is "new"
+const FEED = [];                            // {at, kind:"new"|"open"|"live", id, name, image, text}
+const PULSE = new Map();                    // id -> until
+let FILTER = "all";
+let GROUP = "chain";
+let HIDE = false;
+let TICKER = null;
+const RECHECK = new Map();
+let SELECTED = null;
+let ITEMS = new Map();
+
+const memKey = (a) => `mintradar:elig:${(a || ADDRESS).toLowerCase()}`;
+function loadMem(a) { try { return JSON.parse(localStorage.getItem(memKey(a)) || "{}"); } catch { return {}; } }
+function rememberEligible(slug, stages, a) {
+  try { const m = loadMem(a); m[slug] = { at: Date.now(), stages: (stages || []).map((x) => catOf(x)) }; localStorage.setItem(memKey(a), JSON.stringify(m)); } catch {}
+}
+// "was eligible" on any wallet in the scan
+const wasEligible = (slug) => { try { for (const a of (ADDRESSES.length ? ADDRESSES : [ADDRESS])) { const m = loadMem(a)[slug]; if (m) return m; } return null; } catch { return null; } };
+const isMinted = (d) => (HOLD.get(d.slug)?.owned || 0) > 0;
+const isMissed = (d) => d.status === "ended" && !isMinted(d) && !!wasEligible(d.slug);
+
+/* ---------- OpenSea drop helpers ---------- */
+function headline(d, now) {
+  const open = (d.openStages || []).filter((s) => isOpenNow(s, now));
+  const closing = open.filter((s) => s.endTime).sort((a, b) => a.endTime - b.endTime)[0];
+  if (closing && (d.status === "eligible" || d.looksPublic)) return { label: `${catOf(closing)} ends in`, at: closing.endTime, live: true };
+  const next = (d.allStages || []).filter((s) => s.startTime && s.startTime > now).sort((a, b) => a.startTime - b.startTime)[0];
+  if (next) return { label: `${catOf(next)} opens in`, at: next.startTime, live: false };
+  if (closing) return { label: `${catOf(closing)} ends in`, at: closing.endTime, live: true };
+  return null;
+}
+function endedLine(d) {
+  const h = HOLD.get(d.slug);
+  const mem = wasEligible(d.slug);
+  if (h && h.owned > 0) return { lbl: "You hold", val: `${h.owned}${h.more ? "+" : ""} from this drop` };
+  if (mem) return { lbl: "Missed", val: `you were on ${mem.stages.join("/") || "the list"}` };
+  if (h && h.owned === 0) return { lbl: "Ended", val: "you hold none" };
+  return { lbl: "Ended", val: d.endedAt ? stamp(d.endedAt) : "—" };
+}
+function osStatus(d) {
+  if (d.status === "eligible") return d.looksPublic ? "public" : "eligible";
+  if (String(d.status).endsWith("unfunded")) return "unfunded";
+  if (d.status === "not_open") return "upcoming";
+  if (d.status === "ended") return isMinted(d) ? "minted" : isMissed(d) ? "missed" : "ended";
+  if (d.status === "not_eligible") return "not_eligible";
+  if (d.status === "limit_reached") return "limit";
+  if (d.status === "sold_out") return "sold_out";
+  return "other";
+}
+// The phase that matters for category grouping: the open one, else the next one.
+function osPhaseCat(d, now) {
+  const open = (d.openStages || []).filter((s) => isOpenNow(s, now))[0];
+  if (open) return catOf(open);
+  const next = (d.allStages || []).filter((s) => s.startTime && s.startTime > now).sort((a, b) => a.startTime - b.startTime)[0];
+  if (next) return catOf(next);
+  const any = (d.allStages || [])[0];
+  return any ? catOf(any) : "STAGE";
+}
+function stageCell(s, d, now) {
+  const cat = catOf(s);
+  const price = s.price != null ? " " + eth(s.price) : "";
+  const per = s.maxPerWallet != null ? ` ×${esc(s.maxPerWallet)}` : "";
+  const head = `<b>${esc(cat)}${esc(price)}${per}</b>`;
+  const eligibleHere = d.status === "eligible" && (d.openStages || []).some((o) => o.label === s.label && o.startTime === s.startTime);
+  if (eligibleHere && cat !== "PUBLIC") return `<div class="st ok">${head}<small>✔ you can mint</small></div>`;
+  if (isPast(s, now)) return `<div class="st no">${head}<small>closed</small></div>`;
+  if (isOpenNow(s, now)) {
+    if (cat === "PUBLIC") return `<div class="st pubs live">${head}<small>live · anyone</small></div>`;
+    if (d.status === "not_eligible") return `<div class="st no">${head}<small>✘ not on list</small></div>`;
+    if (String(d.status).endsWith("unfunded")) return `<div class="st q">${head}<small>needs funds</small></div>`;
+    return `<div class="st q">${head}<small>live</small></div>`;
+  }
+  const when = s.startTime ? stamp(s.startTime) : "";
+  return `<div class="st q">${head}<small>${cat === "PUBLIC" ? esc(when) : "? " + esc(when)}</small></div>`;
+}
+
+/* ---------- unified item model ----------
+   Every circle on the page is an "item": {id, kind, name, image, url, chain, status, cat, cats[],
+   pct (ring fill), ring (color class), tag {t, c}, sub {t, at, cls}, src}
+*/
+const STATUS_META = {
+  eligible:     { label: "Eligible now",          cls: "you", order: 0 },
+  public:       { label: "Public open",           cls: "pub", order: 1 },
+  unfunded:     { label: "Needs funds",           cls: "",    order: 2 },
+  live:         { label: "Minting now",           cls: "sol", order: 3 },
+  upcoming:     { label: "Upcoming",              cls: "",    order: 4 },
+  holding:      { label: "Your NFTs",             cls: "sol", order: 5 },
+  trending:     { label: "Trending on Magic Eden",cls: "sol", order: 6 },
+  recent:       { label: "Recent launches",       cls: "sol", order: 7 },
+  minted:       { label: "Minted",                cls: "you", order: 8 },
+  missed:       { label: "Missed",                cls: "",    order: 9 },
+  limit:        { label: "Limit hit",             cls: "",    order: 10 },
+  sold_out:     { label: "Sold out",              cls: "",    order: 11 },
+  not_eligible: { label: "Not on list",           cls: "",    order: 12 },
+  ended:        { label: "Ended",                 cls: "",    order: 13 },
+  other:        { label: "Other",                 cls: "",    order: 14 },
+};
+const CHAIN_NAME = (c) => ({ ethereum: "Ethereum", base: "Base", solana: "Solana", abstract: "Abstract", ape_chain: "ApeChain", ink: "Ink", robinhood: "Robinhood", other: "Other" }[c] || c);
+const CHAIN_ABBR = (c) => ({ ethereum: "ETH", base: "BASE", solana: "SOL", robinhood: "RH", abstract: "ABS", ape_chain: "APE", ink: "INK" }[c] || String(c || "?").slice(0, 4).toUpperCase());
+const catLabel = (c) => ({ pfps: "PFPs", cnft: "cNFTs", defi: "DeFi", daos: "DAOs" }[c] || String(c).replace(/_/g, " "));
+// Phase buckets are a fixed set — creator stage labels are free text ("Artist Phase", "Purr",
+// "Treasury"…), so anything unrecognised lands in "Other phases" instead of making its own group.
+const PHASE_BUCKETS = ["PUBLIC", "GTD", "FCFS", "WL", "TEAM"];
+const PHASE_ORDER = { PUBLIC: 0, GTD: 1, FCFS: 2, WL: 3, TEAM: 4, OTHER: 5 };
+const phaseBucket = (it) => {
+  if (it.kind === "osdrop") { const c = it.cat; return PHASE_BUCKETS.includes(c) ? c : "OTHER"; }
+  if (it.kind === "launch") return "LAUNCHPAD";
+  if (it.kind === "holding") return "HOLDINGS";
+  if (it.kind === "trending") return "TRENDING";
+  return "OTHER";
+};
+const phaseLabel = (b) => ({ PUBLIC: "Public", GTD: "GTD allowlist", FCFS: "FCFS allowlist", WL: "Whitelist", TEAM: "Team / reserve", OTHER: "Other phases", LAUNCHPAD: "Launchpad", HOLDINGS: "Your NFTs", TRENDING: "Trending" }[b] || b);
+
+function buildItems() {
+  const now = Date.now();
+  const items = [];
+  for (const d of ROWS.values()) {
+    const status = osStatus(d);
+    const hl = headline(d, now);
+    const pct = d.minted != null && d.max ? Math.min(100, (d.minted / d.max) * 100) : 0;
+    let tag = { t: "", c: "" };
+    const nw = d.byWallet ? Object.values(d.byWallet).filter((w) => w.status === "eligible" && !w.looksPublic).length : 0;
+    if (status === "eligible") tag = { t: nw > 1 || (ADDRESSES.length > 1 && nw) ? `YOU'RE IN · ${nw}/${ADDRESSES.length}` : "YOU'RE IN", c: "g" };
+    else if (status === "public") tag = { t: "PUBLIC", c: "y" };
+    else if (status === "unfunded") tag = { t: "NEEDS FUNDS", c: "" };
+    else if (status === "minted") tag = { t: `MINTED ×${HOLD.get(d.slug).owned}${HOLD.get(d.slug).more ? "+" : ""}`, c: "g" };
+    else if (status === "missed") tag = { t: "MISSED", c: "miss" };
+    else tag = { t: STATUS_META[status].label.toUpperCase(), c: "" };
+    let sub;
+    if (status === "ended" || status === "minted" || status === "missed") { const e = endedLine(d); sub = { t: e.val, cls: "" }; }
+    else if (hl) sub = { t: countdown(hl.at), at: hl.at, cls: hl.live ? "live" : "", pre: hl.label };
+    else sub = { t: "—", cls: "" };
+    const os0 = (d.openStages || [])[0];
+    if (os0 && os0.price != null && (status === "eligible" || status === "public" || status === "unfunded")) { const u = ethUsd(os0.price); if (u) sub.t += ` · ${eth(os0.price)} ≈ ${u}`; }
+    items.push({
+      src_: "os", id: "os:" + d.slug, kind: "osdrop", name: d.name, image: d.image, url: d.url, chain: d.chain || "other",
+      status, cat: osPhaseCat(d, now), cats: [], pct,
+      ring: status === "eligible" || status === "minted" ? "you" : status === "public" ? "pub" : "q",
+      dim: status === "ended" || status === "not_eligible",
+      tag, sub, src: d, signal: d.signal || null,
+    });
+  }
+  for (const l of ME.launchpad) {
+    const status = l.status === "live" ? "live" : l.status === "upcoming" ? "upcoming" : "recent";
+    const held = ME.wallet?.collections.find((c) => c.symbol === l.symbol);
+    const vsMint = l.floor != null && l.price ? Math.round((l.floor / l.price - 1) * 100) : null;
+    const tag = held ? { t: `YOU HOLD ×${held.count}`, c: "s" } : status === "live" ? { t: "MINTING", c: "s" } : status === "upcoming" ? { t: "LAUNCHPAD", c: "" } : vsMint != null ? { t: `${vsMint >= 0 ? "+" : ""}${vsMint}% VS MINT`, c: vsMint >= 0 ? "y" : "" } : { t: "LAUNCHED", c: "" };
+    const sub = status === "upcoming" && l.launchAt ? { t: countdown(l.launchAt), at: l.launchAt, cls: "", pre: "opens in" }
+      : status === "live" && l.launchAt ? { t: `live · ${solf(l.price)}${solUsd(l.price) ? " ≈ " + solUsd(l.price) : ""}`, cls: "sol" }
+      : { t: `${solf(l.price)}${solUsd(l.price) ? " ≈ " + solUsd(l.price) : ""}${l.floor != null ? ` · floor ${solf(l.floor)}` : ""}`, cls: "" };
+    items.push({
+      src_: "me", badged: !!l.badged, id: "me:lp:" + l.symbol, kind: "launch", name: l.name, image: l.image, url: l.url, chain: "solana",
+      status, cat: "LAUNCHPAD", cats: l.categories || [], pct: status === "live" ? 100 : status === "upcoming" ? 0 : 100,
+      ring: status === "live" || held ? "solr" : status === "upcoming" ? "pub" : "q", dim: false, tag, sub, src: l, signal: l.signal || null,
+    });
+  }
+  for (const m of CHAIN_MINTS.list) {
+    if (m.status === "ended") continue;
+    const pct = m.itemsAvailable ? Math.min(100, (m.itemsRedeemed / m.itemsAvailable) * 100) : 0;
+    const ph = m.phase || {};
+    const price = ph.priceSol != null ? solf(ph.priceSol) : ph.tokenPayment ? "token" : "—";
+    const tag = m.status === "live" ? { t: m.deployedNow ? "NEW · MINTING" : "MINTING", c: "y" } : m.status === "upcoming" ? { t: ph.allowList ? "WL · UPCOMING" : "UPCOMING", c: "" } : { t: "SOLD OUT", c: "" };
+    const sub = m.status === "upcoming" && m.nextStart ? { t: countdown(m.nextStart), at: m.nextStart, cls: "", pre: "opens in" }
+      : { t: `${m.itemsRedeemed}/${m.itemsAvailable || "?"} · ${price}${ph.priceSol ? ` ≈ ${solUsd(ph.priceSol)}` : ""}${m.recentMints ? ` · ${m.recentMints} recent` : ""}`, cls: m.status === "live" ? "live" : "" };
+    // Trust: candy machines are permissionless — no site, no socials, no image and hidden metadata is the classic rug shape.
+    const L = m.links || {}; const hasLinks = !!(L.website || L.twitter || L.discord);
+    const risk = !hasLinks && !m.image ? "high" : !hasLinks || m.hidden ? "med" : "low";
+    items.push({
+      src_: "oc", risk, fresh: m.deployedNow ? m.firstSeen : null, id: "cm:" + m.candyMachine, kind: "cmmint", name: m.name, image: m.image, url: m.url, chain: "solana",
+      status: m.status === "sold_out" ? "sold_out" : m.status, cat: "ON-CHAIN", cats: [], pct,
+      ring: m.status === "live" ? "pub" : "q", dim: m.status === "sold_out", tag, sub, src: m, signal: m.signal || null,
+    });
+  }
+  if (ME.wallet) {
+    const total = ME.wallet.portfolio.valueSol || 0;
+    for (const c of ME.wallet.collections) {
+      const share = total && c.value ? (c.value / total) * 100 : 0;
+      items.push({
+        src_: "me", badged: !!c.badged, id: "me:col:" + c.symbol, kind: "holding", name: c.name, image: c.image, url: c.url, chain: "solana",
+        status: "holding", cat: "HOLDINGS", cats: c.categories || [], pct: Math.max(share, 4),
+        ring: "solr", dim: false,
+        tag: { t: `×${c.count}${c.listed ? ` · ${c.listed} LISTED` : ""}`, c: "s" },
+        sub: { t: c.floor != null ? `floor ${solf(c.floor)}${c.value ? ` · ${solf(c.value)}${solUsd(c.value) ? " ≈ " + solUsd(c.value) : ""}` : ""}` : `${c.count} item${c.count === 1 ? "" : "s"}`, cls: c.value ? "sol" : "" },
+        src: c, signal: c.signal || null,
+      });
+    }
+  }
+  ME.trending.forEach((t, i) => {
+    const held = ME.wallet?.collections.find((c) => c.symbol === t.symbol);
+    items.push({
+      src_: "me", badged: !!t.badged, id: "me:tr:" + t.symbol, kind: "trending", name: t.name, image: t.image, url: t.url, chain: "solana",
+      status: "trending", cat: "TRENDING", cats: t.categories || [], pct: Math.max(8, 100 - i * (92 / Math.max(1, ME.trending.length - 1))),
+      ring: held ? "solr" : "pub", dim: false,
+      tag: held ? { t: `#${i + 1} · YOU HOLD`, c: "s" } : { t: `#${i + 1}`, c: "" },
+      sub: { t: `floor ${solf(t.floor)}${solUsd(t.floor) ? " ≈ " + solUsd(t.floor) : ""}${t.listed != null ? ` · ${t.listed} listed` : ""}`, cls: "" },
+      src: t, signal: t.signal || null,
+    });
+  });
+  for (const c of ME.collections.values()) {
+    items.push({
+      src_: "me", badged: !!c.badged, id: "me:cx:" + c.symbol, kind: "trending", name: c.name, image: c.image, url: c.url, chain: "solana",
+      status: c.held ? "holding" : "other", cat: "COLLECTION", cats: c.categories || [], pct: 100, ring: c.held ? "solr" : "pub", dim: false,
+      tag: c.held ? { t: `YOU HOLD ×${c.held}`, c: "s" } : { t: "CHECKED", c: "" },
+      sub: { t: `floor ${solf(c.floor)} · ${c.listed ?? "—"} listed`, cls: "" }, src: c,
+    });
+  }
+  return items;
+}
+
+/* ---------- filters ---------- */
+const TABS = {
+  evm: [["all", "ALL"], ["eligible", "ELIGIBLE NOW", "acc"], ["public", "PUBLIC OPEN"], ["upcoming", "UPCOMING"], ["missed", "MISSED"], ["minted", "MINTED"]],
+  sol: [["all", "ALL"], ["live", "MINTING NOW", "solc"], ["upcoming", "UPCOMING"], ["holding", "MY NFTS", "solc"], ["trending", "TRENDING"], ["recent", "RECENT LAUNCHES"]],
+};
+function passes(it) {
+  if (HIDE && !["eligible", "public", "unfunded", "live", "upcoming"].includes(it.status)) return false;
+  if (SIGF && it.signal && it.signal.score < 45 && it.kind !== "holding") return false;
+  if (FILTER === "all") return it.status !== "ended";
+  if (FILTER === "missed") return it.status === "missed" || it.status === "ended";
+  return it.status === FILTER;
+}
+function renderTabs() {
+  const all = [...ITEMS.values()];
+  const count = (f) => f === "all" ? all.filter((i) => i.status !== "ended").length : f === "missed" ? all.filter((i) => i.status === "missed" || i.status === "ended").length : all.filter((i) => i.status === f).length;
+  $("tabs").innerHTML = TABS[MODE].map(([f, l, c]) => `<button class="tab${c ? " " + c : ""}${FILTER === f ? " on" : ""}" data-f="${f}" type="button">${l} <b>${count(f)}</b></button>`).join("");
+}
+
+/* ---------- mini link bubbles: website, X, Discord, marketplace ---------- */
+const ICONS = {
+  web: `<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 9h-2.95a15.6 15.6 0 0 0-1.4-5.4A8 8 0 0 1 18.9 11zM12 4c.9 1.3 1.8 3.5 2 7h-4c.2-3.5 1.1-5.7 2-7zM4.3 13h2.95c.1 1.9.6 3.7 1.4 5.4A8 8 0 0 1 4.3 13zm2.95-2H4.3a8 8 0 0 1 4.35-5.4c-.8 1.7-1.3 3.5-1.4 5.4zM12 20c-.9-1.3-1.8-3.5-2-7h4c-.2 3.5-1.1 5.7-2 7zm2.55-1.6c.8-1.7 1.3-3.5 1.4-5.4h2.95a8 8 0 0 1-4.35 5.4z"/></svg>`,
+  x: `<svg viewBox="0 0 24 24"><path d="M17.5 3h3l-7 8 8.2 10h-6.4l-5-6.5L4.6 21h-3l7.5-8.6L1.3 3h6.5l4.5 6z"/></svg>`,
+  dc: `<svg viewBox="0 0 24 24"><path d="M19.5 5.3A17 17 0 0 0 15.3 4l-.5 1a15.6 15.6 0 0 0-5.6 0L8.7 4a17 17 0 0 0-4.2 1.3C1.8 9.3 1.1 13.2 1.4 17a17 17 0 0 0 5.2 2.6l1.1-1.8c-.6-.2-1.2-.5-1.7-.8l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.3-1.1.6-1.7.8l1.1 1.8a17 17 0 0 0 5.2-2.6c.4-4.4-.7-8.3-3.1-11.7zM8.7 14.7c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg>`,
+};
+function itemLinks(it) {
+  const L = it.src?.links || {};
+  const out = [];
+  const web = L.website || (it.kind === "trending" || it.kind === "holding" ? it.src?.website : null);
+  if (web && /^https?:\/\//i.test(web)) out.push({ k: "web", url: web, title: "Website" });
+  const tw = L.twitter || it.src?.twitter;
+  if (tw) out.push({ k: "x", url: /^https?:/i.test(tw) ? tw : `https://x.com/${String(tw).replace(/^@/, "")}`, title: "X / Twitter" });
+  const dc = L.discord || it.src?.discord;
+  if (dc) out.push({ k: "dc", url: /^https?:/i.test(dc) ? dc : `https://discord.gg/${dc}`, title: "Discord" });
+  if (L.instagram) out.push({ k: "ig", url: L.instagram, title: "Instagram", text: "IG" });
+  if (L.telegram) out.push({ k: "tg", url: L.telegram, title: "Telegram", text: "TG" });
+  // marketplace / mint page
+  if (it.kind === "osdrop") out.push({ k: "mkt", url: it.url, title: "OpenSea", text: "OS" });
+  else if (it.kind === "launch") out.push({ k: "mkt", url: it.url, title: "Magic Eden Launchpad", text: "ME" });
+  else if (it.kind === "cmmint") out.push({ k: "mkt", url: it.src.collectionUrl || it.url, title: "Collection on Magic Eden", text: "ME" });
+  else out.push({ k: "mkt", url: it.url, title: "Magic Eden", text: "ME" });
+  return out.filter((l) => l.url && l.url !== "#");
+}
+function linkBubbles(it) {
+  const ls = itemLinks(it);
+  if (!ls.length) return "";
+  return `<span class="lks">${ls.map((l) => `<a class="lk ${l.k}" href="${esc(l.url)}" target="_blank" rel="noopener" title="${esc(l.title)}" aria-label="${esc(l.title)}">${ICONS[l.k] || esc(l.text || l.k.toUpperCase())}</a>`).join("")}</span>`;
+}
+
+const SRC_NAME = { os: "OpenSea", me: "Magic Eden", oc: "On-chain (Candy Machine)" };
+// A scanned wallet is confirmed on an allowlist stage that's open right now.
+const isEligibleNow = (it) => it.kind === "osdrop" && it.status === "eligible" && !it.src.looksPublic;
+const sigChip = (it) => it.signal ? `<span class="sig ${it.signal.tier.toLowerCase()}" title="Signal ${it.signal.score}/100 · ${esc((it.signal.why || []).join(", ") || "no signals")}">${esc(it.signal.tier)}${it.signal.discord?.members ? ` · ${fmtK(it.signal.discord.members)}` : ""}</span>` : "";
+const fmtK = (n) => (n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k" : String(n));
+
+/* ---------- rendering ---------- */
+function bubble(it) {
+  const img = it.image ? `<img src="${esc(it.image)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph2',textContent:'◈'}))">` : `<div class="ph2">◈</div>`;
+  const sub = it.sub.at ? `<span class="sub ${it.sub.cls}" data-at="${it.sub.at}" data-pre="${esc(it.sub.pre || "")}">${esc(it.sub.pre ? it.sub.pre.replace(/ (ends|opens) in$/, "") + " · " : "")}${esc(it.sub.t)}</span>` : `<span class="sub ${it.sub.cls}">${esc(it.sub.t)}</span>`;
+  const risky = it.risk === "high";
+  const tag = risky ? { t: "⚠ UNVERIFIED", c: "warn" } : it.tag;
+  const fresh = it.fresh && Date.now() - it.fresh < 6 * 3600000 ? `<span class="fr">NEW · ${esc(ago(it.fresh))}</span>` : "";
+  return `<div class="bub ${it.ring}${isEligibleNow(it) ? " elig" : ""}${it.dim || risky ? " dim" : ""}${risky ? " risk" : ""}${SELECTED === it.id ? " on" : ""}${PULSE.get(it.id) > Date.now() ? " pulse" : ""}" data-id="${esc(it.id)}" role="button" tabindex="0" style="--p:${it.pct.toFixed(1)}%">
+    <span class="ring">${img}</span>
+    <span class="chn${it.chain === "solana" ? " sol" : ""}" title="${esc(SRC_NAME[it.src_] || "")} · ${esc(it.chain)}"><i class="${esc(it.src_ || "")}"></i>${esc(CHAIN_ABBR(it.chain))}</span>
+    ${fresh}
+    ${tag.t ? `<span class="tag ${tag.c}">${esc(tag.t)}</span>` : ""}
+    <span class="nm">${esc(it.name)}${it.badged || it.src?.verified ? `<span class="vf" title="Verified">✔</span>` : ""}${it.risk === "med" ? `<span class="vf" style="color:var(--muted)" title="No socials or hidden metadata — check before minting">?</span>` : ""}</span>${sub}
+    ${sigChip(it)}
+    ${linkBubbles(it)}
+  </div>`;
+}
+
+const FOLDED = new Set();
+function render() {
+  ITEMS = new Map(buildItems().map((i) => [i.id, i]));
+  let rows = [...ITEMS.values()].filter(passes);
+  const rank = (i) => STATUS_META[i.status]?.order ?? 99;
+  rows.sort((a, b) => rank(a) - rank(b) || (a.sub.at || Infinity) - (b.sub.at || Infinity) || a.name.localeCompare(b.name));
+
+  // Solana on-chain mints live in their own collapsible section, not mixed into the board.
+  trackArrivals();
+  const ocRows = rows.filter((it) => it.src_ === "oc");
+  rows = rows.filter((it) => it.src_ !== "oc");
+  renderOnchain(ocRows);
+
+  // Group
+  const groups = new Map();
+  const put = (key, label, cls, it) => { if (!groups.has(key)) groups.set(key, { label, cls, items: [] }); groups.get(key).items.push(it); };
+  for (const it of rows) {
+    if (GROUP === "status") { const m = STATUS_META[it.status] || STATUS_META.other; put(it.status, m.label, m.cls, it); }
+    else if (GROUP === "chain") put(it.chain, `${CHAIN_ABBR(it.chain)} · ${CHAIN_NAME(it.chain)}`, it.chain === "solana" ? "sol" : "", it);
+    else { const b = phaseBucket(it); put(b, phaseLabel(b), b === "PUBLIC" ? "pub" : b === "HOLDINGS" || b === "LAUNCHPAD" ? "sol" : "", it); }
+  }
+  let entries = [...groups.entries()];
+  if (GROUP === "status") entries.sort((a, b) => (STATUS_META[a[0]]?.order ?? 99) - (STATUS_META[b[0]]?.order ?? 99));
+  else if (GROUP === "phase") entries.sort((a, b) => (PHASE_ORDER[a[0]] ?? 9) - (PHASE_ORDER[b[0]] ?? 9) || b[1].items.length - a[1].items.length);
+  else entries.sort((a, b) => { const o = (c) => c === "ethereum" ? 0 : c === "base" ? 1 : c === "solana" ? 2 : 3; return o(a[0]) - o(b[0]) || b[1].items.length - a[1].items.length; });
+
+  $("out").innerHTML = VIEW === "table" ? renderTable(rows) : rows.length
+    ? entries.map(([key, g]) => `<section class="group${FOLDED.has(key) ? " folded" : ""}" data-g="${esc(key)}">
+        <div class="gh"><b class="${g.cls}">${esc(g.label)}</b><span>${g.items.length}</span><i>${FOLDED.has(key) ? "SHOW ▼" : "HIDE ▲"}</i></div>
+        <div class="bubbles">${g.items.map(bubble).join("")}</div></section>`).join("")
+    : `<div class="empty">${ITEMS.size ? "Nothing matches this filter." : ""}</div>`;
+
+  renderTabs();
+  renderChips();
+  renderTimeline();
+  renderActivity();
+  renderFeed();
+  if (SELECTED && ITEMS.has(SELECTED)) $("sheetbody").innerHTML = sheetHtml(ITEMS.get(SELECTED));
+}
+
+/* ---------- live feed: new arrivals, openings, freshness ---------- */
+let FIRST_RENDER = true, QUIET_UNTIL = 0;   // a scan floods in items that aren't "new" — stay quiet while it runs
+function trackArrivals() {
+  const now = Date.now();
+  for (const it of ITEMS.values()) {
+    if (SEEN_IDS.has(it.id)) continue;
+    SEEN_IDS.add(it.id);
+    if (FIRST_RENDER || now < QUIET_UNTIL) continue;
+    if (["live", "upcoming", "eligible", "public"].includes(it.status)) pushEvent({ at: now, kind: "new", id: it.id, name: it.name, image: it.image, text: it.status === "live" ? "minting now" : it.status === "upcoming" ? "scheduled" : "eligible" });
+  }
+  // on-chain deployments carry their own timestamp
+  for (const it of ITEMS.values()) if (it.fresh && !FEED.some((e) => e.id === it.id && e.kind === "deploy")) pushEvent({ at: it.fresh, kind: "deploy", id: it.id, name: it.name, image: it.image, text: "candy machine deployed" });
+  FIRST_RENDER = false;
+}
+function pushEvent(ev) { FEED.unshift(ev); FEED.sort((a, b) => b.at - a.at); if (FEED.length > 40) FEED.length = 40; }
+function renderOnchain(ocRows) {
+  if (!ocRows.length) { $("ocpanel").hidden = true; return; }
+  $("ocpanel").hidden = false;
+  const live = ocRows.filter((i) => i.status === "live").length, up = ocRows.filter((i) => i.status === "upcoming").length, fresh = ocRows.filter((i) => i.fresh).length;
+  $("ocmeta").innerHTML = `<b>${live}</b> minting now · <b>${up}</b> scheduled${fresh ? ` · <b>${fresh}</b> just deployed` : ""} — read straight from Candy Machine, every launchpad and none`;
+  $("ocbody").innerHTML = VIEW === "table" ? renderTable(ocRows) : `<div class="bubbles">${ocRows.map(bubble).join("")}</div>`;
+}
+function renderFeed() {
+  const has = ITEMS.size > 0;
+  $("ticker").hidden = !has;
+  if (!has) return;
+  const now = Date.now();
+  const evs = FEED.filter((e) => now - e.at < 24 * 3600000).slice(0, 20);
+  $("feed").innerHTML = evs.length ? evs.map((e) => `<span class="ev" data-id="${esc(e.id)}">${e.image ? `<img src="${esc(e.image)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ph2'}))">` : `<span class="ph2"></span>`}<b class="${e.kind === "open" ? "hot" : e.kind === "new" || e.kind === "deploy" ? "new" : ""}">${e.kind === "open" ? "OPENED" : e.kind === "deploy" ? "NEW" : e.kind === "new" ? "NEW" : "LIVE"}</b>${esc(e.name)} <small>· ${esc(e.text)} · ${esc(ago(e.at))}</small></span>`).join("")
+    : `<span class="ev"><small>watching — new mints, deployments and phase openings show up here</small></span>`;
+  renderFresh();
+}
+function renderFresh() {
+  const t = Math.max(FRESH.chain, FRESH.me, FRESH.os);
+  if (!t) { $("fresh").textContent = ""; return; }
+  const age = Date.now() - t;
+  $("fresh").textContent = `updated ${ago(t)}`;
+  $("fresh").classList.toggle("stale", age > 5 * 60000);
+}
+function beep() {
+  if (!SOUND) return;
+  try {
+    const ctx = beep.ctx || (beep.ctx = new (window.AudioContext || window.webkitAudioContext)());
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine"; o.frequency.value = 880; g.gain.value = 0.0001;
+    o.connect(g); g.connect(ctx.destination); o.start();
+    g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+    o.stop(ctx.currentTime + 0.55);
+  } catch {}
+}
+function opened(id) {
+  const it = ITEMS.get(id); if (!it) return;
+  PULSE.set(id, Date.now() + 60000);
+  pushEvent({ at: Date.now(), kind: "open", id, name: it.name, image: it.image, text: "phase opened" });
+  beep();
+  const b = document.querySelector(`.bub[data-id="${CSS.escape(id)}"]`); if (b) b.classList.add("pulse");
+  renderFeed();
+}
+
+/* ---------- table view ---------- */
+const COLS = [
+  ["name", "Collection"], ["src", "Source · chain"], ["status", "Status"], ["signal", "Signal"], ["phase", "Phase"], ["price", "Price"], ["progress", "Minted"], ["when", "Opens / ends"], ["links", "Links"],
+];
+function rowData(it) {
+  const now = Date.now(); const d = it.src;
+  let phase = "", price = "", priceN = null, prog = "", pct = it.pct, when = "", whenAt = null, live = false;
+  if (it.kind === "osdrop") {
+    const s = (d.openStages || []).filter((x) => isOpenNow(x, now))[0] || (d.allStages || []).filter((x) => x.startTime > now).sort((a, b) => a.startTime - b.startTime)[0];
+    phase = s ? catOf(s) : ""; if (s && s.price != null) { price = withUsd(eth(s.price) + " ETH", ethUsd(s.price)); priceN = Number(s.price) / 1e18; }
+    prog = `${d.minted ?? "–"}/${d.max ?? "–"}`;
+    const hl = headline(d, now); if (hl) { when = countdown(hl.at); whenAt = hl.at; live = hl.live; }
+  } else if (it.kind === "launch") {
+    phase = it.status === "live" ? "LIVE" : it.status === "upcoming" ? "LAUNCH" : "DONE"; price = withUsd(solf(d.price), solUsd(d.price)); priceN = d.price; prog = d.size ? `supply ${d.size}` : "";
+    if (it.status === "upcoming" && d.launchAt) { when = countdown(d.launchAt); whenAt = d.launchAt; } else if (d.launchAt) when = stamp(d.launchAt);
+  } else if (it.kind === "cmmint") {
+    const ph = d.phase || {}; phase = (ph.label || "").toUpperCase() + (ph.allowList ? " · WL" : ""); price = ph.priceSol != null ? withUsd(solf(ph.priceSol), solUsd(ph.priceSol)) : "token"; priceN = ph.priceSol; prog = `${d.itemsRedeemed}/${d.itemsAvailable || "?"}`;
+    if (it.status === "upcoming" && d.nextStart) { when = countdown(d.nextStart); whenAt = d.nextStart; } else if (ph.endAt && ph.endAt > now) { when = countdown(ph.endAt); whenAt = ph.endAt; live = true; } else if (it.status === "live") { when = "open"; live = true; }
+  } else if (it.kind === "holding") {
+    phase = `×${d.count}`; price = d.floor != null ? withUsd("floor " + solf(d.floor), solUsd(d.floor)) : ""; priceN = d.floor; prog = d.value ? `≈ ${solf(d.value)}` : ""; pct = 0;
+  } else {
+    phase = it.tag.t; price = withUsd("floor " + solf(d.floor), solUsd(d.floor)); priceN = d.floor; prog = d.listed != null ? `${d.listed} listed` : ""; pct = 0;
+  }
+  return { phase, price, priceN, prog, pct, when, whenAt, live };
+}
+function renderTable(rows) {
+  if (!rows.length) return `<div class="empty">Nothing matches this filter.</div>`;
+  const data = rows.map((it) => ({ it, r: rowData(it) }));
+  const k = TSORT.key, dir = TSORT.dir;
+  const val = (x) => k === "name" ? x.it.name.toLowerCase() : k === "src" ? x.it.chain + x.it.src_ : k === "status" ? (STATUS_META[x.it.status]?.order ?? 99) : k === "signal" ? -(x.it.signal?.score ?? -1) : k === "phase" ? x.r.phase : k === "price" ? (x.r.priceN ?? Infinity) : k === "progress" ? -x.r.pct : k === "when" ? (x.r.whenAt ?? Infinity) : 0;
+  data.sort((a, b) => { const va = val(a), vb = val(b); return (va > vb ? 1 : va < vb ? -1 : 0) * dir; });
+  const head = COLS.map(([key, label]) => `<th data-k="${key}" class="${TSORT.key === key ? "on" : ""}">${label}${TSORT.key === key ? (dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("");
+  const body = data.map(({ it, r }) => {
+    const risky = it.risk === "high";
+    const st = risky ? { t: "⚠ UNVERIFIED", c: "" } : it.tag;
+    return `<tr class="row${isEligibleNow(it) ? " elig" : ""}${it.dim || risky ? " dim" : ""}" data-id="${esc(it.id)}">
+      <td><div class="nmc">${it.image ? `<img src="${esc(it.image)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph2',textContent:'◈'}))">` : `<div class="ph2">◈</div>`}<div><b>${esc(it.name)}${it.badged ? ' <span style="color:var(--soft)">✔</span>' : ""}</b><small>${esc(STATUS_META[it.status]?.label || it.status)}${it.fresh && Date.now() - it.fresh < 6 * 3600000 ? ` · NEW ${esc(ago(it.fresh))}` : ""}</small></div></div></td>
+      <td><span class="dot ${esc(it.src_ || "")}"></span>${esc(SRC_NAME[it.src_] || "")} · ${esc(CHAIN_ABBR(it.chain))}</td>
+      <td><span class="st2 ${st.c === "g" || st.c === "s" ? "you" : st.c === "y" ? "pub" : ""}">${esc(st.t || "—")}</span></td>
+      <td>${it.signal ? sigChip(it) : "—"}</td>
+      <td>${esc(r.phase || "—")}</td>
+      <td>${r.price || "—"}</td>
+      <td>${esc(r.prog)}${r.pct ? `<span class="bar2"><i style="width:${r.pct}%"></i></span>` : ""}</td>
+      <td>${r.whenAt ? `<span class="cd2${r.live ? " live" : ""}" data-at="${r.whenAt}">${esc(r.when)}</span>` : `<span class="cd2${r.live ? " live" : ""}">${esc(r.when || "—")}</span>`}</td>
+      <td>${linkBubbles(it).replace(/class="lks"/, 'class="lks"')}</td>
+    </tr>`;
+  }).join("");
+  return `<div class="tablewrap"><table class="tv"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function renderChips() {
+  const now = Date.now();
+  const chip = (id, cls, img, name, line) => `<button class="chip${cls}" data-id="${esc(id)}" type="button">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : `<div class="ph2">◈</div>`}<div><div class="n">${esc(name)}</div><div class="s">${line}</div></div></button>`;
+  const out = [];
+  const hits = [...ROWS.values()].filter((d) => d.status === "eligible" || String(d.status).endsWith("unfunded"));
+  const pending = [...ROWS.values()].filter((d) => d.status === "not_open" && (d.allStages || []).some((s) => s.startTime > now && catOf(s) !== "PUBLIC")).slice(0, 4);
+  for (const d of hits) {
+    const s = (d.openStages || [])[0] || {};
+    const cat = catOf(s);
+    const money = s.price != null ? " · " + eth(s.price) : "";
+    const end = s.endTime ? ` · <i>ends in ${countdown(s.endTime)}</i>` : "";
+    const unfunded = String(d.status).endsWith("unfunded") ? " · <i>needs funds</i>" : "";
+    out.push(chip("os:" + d.slug, cat === "PUBLIC" ? " pub" : "", d.image, d.name, `${esc(cat)}${esc(money)}${end}${unfunded}`));
+  }
+  for (const d of pending) {
+    const s = (d.allStages || []).filter((x) => x.startTime > now && catOf(x) !== "PUBLIC")[0];
+    out.push(chip("os:" + d.slug, " q", d.image, d.name, `${esc(catOf(s))} opens in ${countdown(s.startTime)} · will recheck`));
+  }
+  for (const l of ME.launchpad.filter((x) => x.status === "live").slice(0, 6)) {
+    out.push(chip("me:lp:" + l.symbol, " sol", l.image, l.name, `MINTING · ${esc(solf(l.price))} · ${esc(l.size ?? "?")} supply${l.floor != null ? ` · <i>floor ${esc(solf(l.floor))}</i>` : ""}`));
+  }
+  $("chips").innerHTML = out.join("");
+
+  if (MODE === "sol" && ME.wallet) {
+    const w = ME.wallet;
+    $("elig").innerHTML = `${w.wallets ? `<b style="color:var(--soft)">${w.wallets.length} wallets</b>` : esc(short(ADDRESS))} · <b style="color:var(--orange)">${w.nfts}${w.more ? "+" : ""}</b> NFTs across ${w.collections.length} collections · est. <b style="color:var(--orange)">${esc(solf(w.portfolio.valueSol))}</b> at floor${w.portfolio.unpricedCollections ? ` (${w.portfolio.unpricedCollections} unpriced)` : ""}${w.portfolio.escrowSol ? ` · ${esc(solf(w.portfolio.escrowSol))} in ME escrow` : ""} · ${ME.launchpad.filter((x) => x.status === "live").length} launchpads minting · ${ME.launchpad.filter((x) => x.status === "upcoming").length} upcoming`;
+  } else if (MODE === "sol") {
+    $("elig").innerHTML = `Magic Eden launchpad · <b style="color:var(--orange)">${ME.launchpad.filter((x) => x.status === "live").length}</b> minting now · ${ME.launchpad.filter((x) => x.status === "upcoming").length} upcoming · ${ME.trending.length} trending collections. Add a Solana address to see your NFTs and activity.`;
+  } else if (ROWS.size) {
+    const eligible = [...ROWS.values()].filter((d) => d.status === "eligible" && !d.looksPublic).length;
+    const pub = [...ROWS.values()].filter((d) => d.status === "eligible" && d.looksPublic).length;
+    const wtag = tgLink("wallet:" + ADDRESS.toLowerCase()) ? ` · <a href="${esc(tgLink("wallet:" + ADDRESS.toLowerCase()))}" target="_blank" rel="noopener" style="color:var(--orange)">🔔 alert me when eligible</a>` : "";
+    $("elig").innerHTML = `${ADDRESSES.length > 1 ? `<b style="color:var(--soft)">${ADDRESSES.length} wallets</b>` : `${esc(ADDRESS.slice(0, 6))}…${esc(ADDRESS.slice(-4))}`} · <b style="color:var(--orange)">${eligible}</b> allowlist stage${eligible === 1 ? "" : "s"} open to you${wtag} · ${pub} public open · ${pending.length} phase${pending.length === 1 ? "" : "s"} pending · ${ROWS.size} drops tracked`;
+  }
+}
+
+/* ---------- calendar: every future phase across OpenSea + every upcoming ME launch ---------- */
+let CAL_HORIZON = 0;
+let CAL_MINE = false;
+function dropIsMine(d) {
+  if (d.status === "eligible" && !d.looksPublic) return true;
+  if (String(d.status) === "allowlist_unfunded") return true;
+  return !!wasEligible(d.slug);
+}
+function renderTimeline() {
+  const now = Date.now();
+  const all = [];
+  for (const d of ROWS.values()) {
+    const mine = dropIsMine(d);
+    for (const st of (d.futureStages || d.allStages || [])) {
+      if (!st.startTime || st.startTime <= now) continue;
+      const cat = catOf(st);
+      all.push({ id: "os:" + d.slug, name: d.name, at: st.startTime, cat, cls: cat === "PUBLIC" ? "pub" : "al", mine: mine && cat !== "PUBLIC",
+        meta: `${st.price != null ? eth(st.price) : ""}${st.maxPerWallet != null ? ` ×${st.maxPerWallet}` : ""}${st.allowlistCount != null ? ` · ${st.allowlistCount} wallets` : ""}`,
+        tail: mine && cat !== "PUBLIC" ? `<span class="you">✔ YOU'RE ON THIS LIST</span>` : cat === "PUBLIC" ? "anyone" : "? checks at open" });
+    }
+  }
+  for (const l of ME.launchpad) {
+    if (l.status !== "upcoming" || !l.launchAt) continue;
+    all.push({ id: "me:lp:" + l.symbol, name: l.name, at: l.launchAt, cat: "LAUNCH", cls: "sol", mine: false, meta: `${solf(l.price)}${l.size ? ` · ${l.size} supply` : ""}`, tail: "magic eden" });
+  }
+  all.sort((a, b) => a.at - b.at);
+  if (!all.length) { $("calpanel").hidden = true; return; }
+  $("calpanel").hidden = false;
+
+  const spanDays = Math.ceil((all[all.length - 1].at - now) / 86400000);
+  const cutoff = CAL_HORIZON ? now + CAL_HORIZON * 86400000 : Infinity;
+  const rows = all.filter((r) => r.at <= cutoff && (!CAL_MINE || r.mine));
+  const mineCount = all.filter((r) => r.mine).length;
+  $("calmeta").innerHTML = `${all.length} scheduled phases across the next <b style="color:var(--soft)">${spanDays} day${spanDays === 1 ? "" : "s"}</b>` + (mineCount ? ` · <b style="color:var(--orange)">${mineCount} on a list you're on</b>` : "");
+  if (!rows.length) { $("timeline").innerHTML = `<div class="empty2">${CAL_MINE ? "No upcoming phases on lists this address is confirmed on." : "Nothing scheduled in this window."}</div>`; return; }
+
+  let lastDay = "";
+  const out = [];
+  const today = new Date().toDateString(), tm = new Date(Date.now() + 86400000).toDateString();
+  for (const r of rows) {
+    const t = new Date(r.at), day = t.toDateString();
+    if (day !== lastDay) { lastDay = day; out.push(`<div class="day">${day === today ? "Today" : day === tm ? "Tomorrow" : esc(t.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }))}</div>`); }
+    const soon = r.at - now < 3600000;
+    out.push(`<a class="row${r.mine ? " mine" : soon ? " soon" : ""}" href="#" data-id="${esc(r.id)}">
+      <span class="when" data-at="${r.at}">${countdown(r.at)}</span>
+      <span class="ph ${r.cls}">${esc(r.cat)}</span>
+      <span class="nm">${esc(r.name)} <span class="meta2">${esc(r.meta)}</span></span>
+      <span class="meta2 tail">${r.tail}</span>
+    </a>`);
+  }
+  $("timeline").innerHTML = out.join("");
+}
+
+function renderActivity() {
+  const acts = ME.wallet?.activity || [];
+  if (MODE !== "sol" || !acts.length) { $("actpanel").hidden = true; return; }
+  $("actpanel").hidden = false;
+  $("acts").innerHTML = acts.slice(0, 30).map((a) => `<a class="row" href="${esc(a.url || "#")}" target="_blank" rel="noopener">
+    <span class="k ${a.side || ""}">${esc(a.label.toUpperCase())}</span>
+    <span class="nm">${esc(a.collection || short(a.mint) || "—")}${a.price != null ? ` <span class="meta2">${esc(solf(a.price))}</span>` : ""}</span>
+    <span class="meta2">${esc(ago(a.at))}</span></a>`).join("");
+  const buys = acts.filter((a) => a.side === "buy" && a.type === "buyNow"), sells = acts.filter((a) => a.side === "sell" && a.type === "buyNow");
+  const sum = (l) => l.reduce((s, a) => s + (Number(a.price) || 0), 0);
+  $("actmeta").innerHTML = `last ${acts.length} events · <b style="color:var(--orange)">${buys.length} buys (${esc(solf(sum(buys)))})</b> · ${sells.length} sales (${esc(solf(sum(sells)))})`;
+}
+
+/* ---------- detail sheet ---------- */
+function sheetHtml(it) {
+  const now = Date.now();
+  const img = it.image ? `<img src="${esc(it.image)}" alt="">` : `<div class="ph2">◈</div>`;
+  const head = (badge, meta) => `<div class="sh"><div class="ring" style="--rc:var(--${it.ring === "you" ? "orange" : it.ring === "pub" ? "soft" : it.ring === "solr" ? "sol" : "chip"});--p:${it.pct.toFixed(1)}%">${img}</div><div><div class="t">${esc(it.name)}</div><div class="m">${meta}</div>${badge}</div></div>`;
+  const sig = it.signal ? `<div class="kv"><div style="grid-column:1/-1"><div class="l">Signal · ${it.signal.score}/100</div><div class="v">${sigChip(it)} <span class="why">${esc((it.signal.why || []).join(" · ") || "no website, socials or community found")}</span></div></div></div>` : "";
+  const tg = tgLink(it.id) && (it.kind === "osdrop" || it.kind === "launch" || it.kind === "cmmint") ? `<a class="tg" href="${esc(tgLink(it.id))}" target="_blank" rel="noopener" title="Get a Telegram ping 10 min before it opens and at open">🔔 TELEGRAM ALERT</a>` : "";
+  const wallets = it.kind === "osdrop" && it.src.byWallet && Object.keys(it.src.byWallet).length > 1 ? `<h4>Per wallet</h4><div class="wl">${Object.entries(it.src.byWallet).map(([a, w]) => `<div><span>${esc(short(a))}</span>${w.status === "eligible" && !w.looksPublic ? `<b>✔ eligible</b>` : w.status === "eligible" ? `<i>public</i>` : `<i>${esc(String(w.status).replace(/_/g, " "))}</i>`}</div>`).join("")}</div>` : "";
+  const socials = itemLinks(it).filter((l) => l.k !== "mkt");
+  const socialRow = socials.length ? `<div class="cats" style="margin-top:10px">${socials.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener"><span style="color:var(--soft)">${esc(l.title.toUpperCase())} ↗</span></a>`).join("")}</div>` : "";
+  const kv = (pairs) => socialRow + sig + wallets + `<div class="kv">${pairs.filter(Boolean).map(([l, v, c]) => `<div><div class="l">${l}</div><div class="v ${c || ""}">${v}</div></div>`).join("")}</div>`;
+
+  if (it.kind === "osdrop") {
+    const d = it.src;
+    const hl = headline(d, now);
+    const stages = (d.allStages && d.allStages.length ? d.allStages : d.openStages || []).slice(0, 4).map((s) => stageCell(s, d, now)).join("");
+    const badge = `<span class="badge ${it.tag.c || "d"}">${esc(it.tag.t)}</span>`;
+    const e = it.status === "ended" || it.status === "minted" || it.status === "missed" ? endedLine(d) : null;
+    return head(badge, `${esc(CHAIN_ABBR(d.chain))} · OpenSea drop · ${esc(it.cat)} phase`)
+      + kv([
+        ["Minted", `${d.minted ?? "–"}<small>/${d.max ?? "–"}</small>`],
+        d.minted != null && d.max != null ? ["Left", `${Math.max(0, d.max - d.minted)}`] : null,
+        e ? [e.lbl, esc(e.val)] : hl ? [hl.label, `<span data-at="${hl.at}" class="cdv">${countdown(hl.at)}</span>`, hl.live ? "live" : ""] : null,
+        (() => { const s0 = (d.openStages || [])[0] || (d.allStages || [])[0]; return s0 && s0.price != null ? ["Price", withUsd(esc(eth(s0.price)) + " ETH", ethUsd(s0.price)), "sol"] : null; })(),
+      ])
+      + `<div class="prog"><i style="width:${it.pct}%"></i></div>`
+      + (stages ? `<h4>Stages</h4><div class="stages">${stages}</div>` : "")
+      + (d.reason && it.status !== "eligible" && it.status !== "upcoming" ? `<p class="desc">OpenSea: ${esc(String(d.reason).slice(0, 240))}</p>` : "")
+      + `<div class="foot">${tg}<a class="pri" href="${esc(d.url)}" target="_blank" rel="noopener">OPENSEA ↗</a>${d.contract ? `<button data-copy="${esc(d.contract)}" type="button">${esc(d.contract.slice(0, 6))}…${esc(d.contract.slice(-4))}</button>` : ""}<button data-recheck="${esc(d.slug)}" type="button">RE-CHECK</button></div>`;
+  }
+  if (it.kind === "launch") {
+    const l = it.src;
+    const held = ME.wallet?.collections.find((c) => c.symbol === l.symbol);
+    const badge = `<span class="badge ${it.tag.c || "d"}">${esc(it.tag.t)}</span>`;
+    const vsMint = l.floor != null && l.price ? ((l.floor / l.price - 1) * 100) : null;
+    return head(badge, `SOL · Magic Eden Launchpad${l.featured ? " · featured" : ""}`)
+      + kv([
+        ["Mint price", withUsd(esc(solf(l.price)), solUsd(l.price)), "sol"],
+        ["Supply", esc(l.size ?? "—")],
+        l.status === "upcoming" && l.launchAt ? ["Opens in", `<span data-at="${l.launchAt}" class="cdv">${countdown(l.launchAt)}</span>`, "live"] : l.launchAt ? ["Launched", esc(stamp(l.launchAt))] : null,
+        l.floor != null ? ["Floor now", `${esc(solf(l.floor))}${vsMint != null ? `<small> ${vsMint >= 0 ? "+" : ""}${vsMint.toFixed(0)}% vs mint</small>` : ""}`, vsMint != null && vsMint >= 0 ? "sol" : ""] : null,
+        l.listed != null ? ["Listed", esc(l.listed)] : null,
+        l.volume7d != null ? ["7d volume", esc(solf(l.volume7d))] : null,
+        held ? ["You hold", `×${held.count}`, "sol"] : null,
+      ])
+      + (l.categories?.length ? `<div class="cats">${l.categories.map((c) => `<span>${esc(catLabel(c))}</span>`).join("")}</div>` : "")
+      + (l.description ? `<p class="desc">${esc(l.description)}</p>` : "")
+      + `<div class="foot">${tg}<a class="pri sol" href="${esc(l.url)}" target="_blank" rel="noopener">LAUNCHPAD ↗</a><a href="${esc(l.marketUrl)}" target="_blank" rel="noopener">MARKET ↗</a>${l.contract ? `<button data-copy="${esc(l.contract)}" type="button">${esc(short(l.contract))}</button>` : ""}</div>`;
+  }
+  if (it.kind === "cmmint") {
+    const m = it.src;
+    const ph = m.phase || {};
+    const phaseRow = (p) => { const open = (p.startAt == null || p.startAt <= now) && (p.endAt == null || p.endAt > now); const past = p.endAt && p.endAt <= now; return `<div class="st ${past ? "no" : open ? "pubs live" : "q"}"><b>${esc(p.label.toUpperCase())}${p.priceSol != null ? " " + esc(solf(p.priceSol)) : ""}${p.perWallet ? ` ×${p.perWallet}` : ""}</b><small>${past ? "closed" : open ? "live" : p.startAt ? esc(stamp(p.startAt)) : "no start"}${p.allowList ? " · WL" : ""}</small></div>`; };
+    return head(`<span class="badge ${it.tag.c || "d"}">${esc(it.tag.t)}</span>`, `SOL · on-chain · ${m.kind === "core" ? "Core Candy Machine" : "Candy Machine v3"}${m.hasGuard ? "" : " · no guard"}`)
+      + kv([
+        ["Minted", `${m.itemsRedeemed}<small>/${m.itemsAvailable || "?"}</small>`],
+        m.itemsAvailable ? ["Left", `${Math.max(0, m.itemsAvailable - m.itemsRedeemed)}`] : null,
+        ["Price", ph.priceSol != null ? withUsd(esc(solf(ph.priceSol)), solUsd(ph.priceSol)) : ph.tokenPayment ? `${ph.tokenPayment.amount} <small>token</small>` : "—", "sol"],
+        it.risk && it.risk !== "low" ? ["Trust", it.risk === "high" ? "⚠ no site, socials or image" : "? no socials / hidden metadata", ""] : null,
+        ph.perWallet ? ["Per wallet", `×${ph.perWallet}`] : null,
+        m.status === "upcoming" && m.nextStart ? ["Opens in", `<span data-at="${m.nextStart}" class="cdv">${countdown(m.nextStart)}</span>`, "live"] : ph.endAt && ph.endAt > now ? ["Ends in", `<span data-at="${ph.endAt}" class="cdv">${countdown(ph.endAt)}</span>`] : null,
+        m.recentMints ? ["Recent mints", `${m.recentMints}`] : null,
+        ph.botTax ? ["Bot tax", esc(solf(ph.botTax))] : null,
+      ])
+      + `<div class="prog"><i style="width:${it.pct}%"></i></div>`
+      + (m.phases?.length ? `<h4>Phases (Candy Guard)</h4><div class="stages">${m.phases.slice(0, 4).map(phaseRow).join("")}</div>` : "")
+      + (m.description ? `<p class="desc">${esc(m.description)}</p>` : "")
+      + `<p class="desc" style="color:var(--dim)">Read straight from the Candy Machine account — the same data every launchpad shows. Mint on the project's own site or launchpad; this page never sends transactions.</p>`
+      + `<div class="foot">${tg}<a class="pri sol" href="${esc(m.collectionUrl)}" target="_blank" rel="noopener">COLLECTION ↗</a><a href="${esc(m.url)}" target="_blank" rel="noopener">SOLSCAN ↗</a><button data-copy="${esc(m.candyMachine)}" type="button">${esc(short(m.candyMachine))}</button></div>`;
+  }
+  if (it.kind === "holding") {
+    const c = it.src;
+    return head(`<span class="badge s">${esc(it.tag.t)}</span>`, `SOL · your holdings${c.badged ? " · ✔ verified" : ""}`)
+      + kv([
+        ["Held", `×${c.count}`, "sol"],
+        ["Floor", esc(solf(c.floor))],
+        c.value != null ? ["Value at floor", esc(solf(c.value)), "sol"] : null,
+        c.listed ? ["You listed", `${c.listed}`] : null,
+        c.listedCount != null ? ["Listed (all)", esc(c.listedCount)] : null,
+        c.volume7d != null ? ["7d volume", esc(solf(c.volume7d))] : null,
+      ])
+      + (c.categories?.length ? `<div class="cats">${c.categories.map((x) => `<span>${esc(catLabel(x))}</span>`).join("")}</div>` : "")
+      + (c.items?.length ? `<h4>Your items</h4><div class="mini">${c.items.map((n) => `<a href="${esc(n.url || "#")}" target="_blank" rel="noopener" title="${esc(n.name)}">${n.image ? `<img src="${esc(n.image)}" alt="" loading="lazy">` : ""}${n.listed ? `<span class="lp">${esc(solf(n.price))}</span>` : ""}</a>`).join("")}${c.count > c.items.length ? `<div style="display:grid;place-items:center;color:var(--muted);font-size:10px">+${c.count - c.items.length}</div>` : ""}</div>` : "")
+      + `<div class="foot"><a class="pri sol" href="${esc(c.url)}" target="_blank" rel="noopener">MAGIC EDEN ↗</a><button data-detail="${esc(c.symbol)}" type="button">LISTINGS &amp; SALES</button></div>`;
+  }
+  // trending / checked collection
+  const t = it.src;
+  return head(`<span class="badge ${it.tag.c || "d"}">${esc(it.tag.t)}</span>`, `SOL · Magic Eden${t.badged ? " · ✔ verified" : ""}${t.hasCNFTs ? " · cNFTs" : ""}`)
+    + kv([
+      ["Floor", esc(solf(t.floor)), "sol"],
+      t.listed != null ? ["Listed", esc(t.listed)] : null,
+      t.avg24h != null ? ["Avg 24h", esc(solf(t.avg24h))] : null,
+      t.volume7d != null ? ["7d volume", esc(solf(t.volume7d))] : null,
+      t.volumeAll != null ? ["All-time vol", esc(solf(t.volumeAll))] : null,
+      t.held ? ["You hold", `×${t.held}`, "sol"] : null,
+    ])
+    + (t.categories?.length ? `<div class="cats">${t.categories.map((x) => `<span>${esc(catLabel(x))}</span>`).join("")}</div>` : "")
+    + (t.description ? `<p class="desc">${esc(t.description)}</p>` : "")
+    + (t.cheapest?.length ? `<h4>Cheapest listings</h4><div class="mini">${t.cheapest.map((n) => `<a href="${esc(n.url || "#")}" target="_blank" rel="noopener" title="${esc(n.name || "")}">${n.image ? `<img src="${esc(n.image)}" alt="" loading="lazy">` : ""}<span class="lp">${esc(solf(n.price))}</span></a>`).join("")}</div>` : "")
+    + (t.sales?.length ? `<h4>Latest sales</h4><div class="sales">${t.sales.slice(0, 6).map((s) => `<div><span>${esc(solf(s.price))}</span><span>${esc(short(s.buyer))} · ${esc(ago(s.at))}</span></div>`).join("")}</div>` : "")
+    + `<div class="foot"><a class="pri sol" href="${esc(t.url)}" target="_blank" rel="noopener">MAGIC EDEN ↗</a>${t.cheapest ? "" : `<button data-detail="${esc(t.symbol)}" type="button">LISTINGS &amp; SALES</button>`}${t.twitter ? `<a href="${esc(t.twitter)}" target="_blank" rel="noopener">X ↗</a>` : ""}</div>`;
+}
+function openSheet(id) {
+  const it = ITEMS.get(id); if (!it) return;
+  SELECTED = id;
+  $("sheetbody").innerHTML = sheetHtml(it);
+  $("sheet").classList.add("on"); $("veil").classList.add("on"); $("sheet").setAttribute("aria-hidden", "false");
+  for (const b of document.querySelectorAll(".bub")) b.classList.toggle("on", b.dataset.id === id);
+}
+function closeSheet() {
+  SELECTED = null;
+  $("sheet").classList.remove("on"); $("veil").classList.remove("on"); $("sheet").setAttribute("aria-hidden", "true");
+  for (const b of document.querySelectorAll(".bub.on")) b.classList.remove("on");
+}
+
+/* ---------- OpenSea: holdings, ticker, re-check ---------- */
+async function loadHoldings(rows) {
+  let i = 0;
+  await Promise.all(Array.from({ length: 3 }, async () => {
+    while (i < rows.length) {
+      const d = rows[i++];
+      try {
+        let owned = 0, more = false, any = false;
+        for (const a of ADDRESSES) {
+          const r = await fetch(`/api/holdings?address=${encodeURIComponent(a)}&chain=${encodeURIComponent(d.chain || "ethereum")}&slug=${encodeURIComponent(d.slug)}`);
+          const h = await r.json();
+          if (!h.error && h.owned != null) { owned += h.owned; more = more || !!h.more; any = true; }
+        }
+        if (any) HOLD.set(d.slug, { owned, more });
+      } catch {}
+    }
+  }));
+  render();
+}
+function startTicker() {
+  if (TICKER) return;
+  TICKER = setInterval(() => {
+    const now = Date.now();
+    for (const el of document.querySelectorAll(".when[data-at],.cdv[data-at],.cd2[data-at]")) el.textContent = countdown(Number(el.dataset.at));
+    if (now % 10000 < 1000) renderFresh();
+    for (const el of document.querySelectorAll(".sub[data-at]")) {
+      const at = Number(el.dataset.at);
+      const pre = el.dataset.pre ? el.dataset.pre.replace(/ (ends|opens) in$/, "") + " · " : "";
+      el.textContent = pre + countdown(at);
+      if (at <= now && !el.dataset.done) { el.dataset.done = "1"; const id = el.closest(".bub")?.dataset.id || ""; opened(id); if (id.startsWith("os:")) RECHECK.set(id.slice(3), 0); if (id.startsWith("me:lp:")) { const l = ME.launchpad.find((x) => x.symbol === id.slice(6)); if (l) { l.status = "live"; setTimeout(render, 500); } } if (id.startsWith("cm:")) setTimeout(loadChainMints, 3000); }
+    }
+    for (const [slug, at] of RECHECK) if (at <= now) { RECHECK.delete(slug); recheck(slug); }
+  }, 1000);
+}
+async function recheck(slug) {
+  try {
+    const d = await checkMerged(slug);
+    if (d && !d.error) {
+      if (d.status === "ended" && !HOLD.has(slug)) loadHoldings([d]);
+      const prev = ROWS.get(slug) || {};
+      d.image = d.image || prev.image; d.chain = d.chain || prev.chain;
+      ROWS.set(slug, d); render();
+    }
+  } catch {}
+}
+async function checkOne(address, slug) {
+  const r = await fetch(`/api/check?address=${encodeURIComponent(address)}&slug=${encodeURIComponent(slug)}`);
+  return r.json();
+}
+
+/* ---------- scans ---------- */
+function showUi() { $("bar").hidden = false; $("legend").hidden = false; $("note").hidden = false; }
+function setMode(m) { MODE = m; FILTER = "all"; renderTabs(); }
+const fetchJson = async (url) => { const r = await fetch(url); const j = await r.json(); if (!r.ok || j.error) throw new Error(j.error || r.statusText); return j; };
+
+// Rank of an OpenSea result for merging several wallets: lower is better.
+const OS_RANK = (r) => r.status === "eligible" ? (r.looksPublic ? 2 : 0) : r.status === "allowlist_unfunded" ? 1 : r.status === "eligible_unfunded" ? 3 : r.status === "limit_reached" ? 4 : r.status === "not_eligible" ? 5 : r.status === "public_error" ? 5 : r.status === "not_open" ? 6 : r.status === "ended" ? 7 : r.status === "sold_out" ? 8 : 9;
+const WALLET_INDEPENDENT = new Set(["not_open", "ended", "sold_out", "not_a_drop", "skipped"]);
+// Check one drop for every wallet in the scan and merge into a single row.
+async function checkMerged(slug) {
+  const first = await checkOne(ADDRESSES[0], slug);
+  if (first.error) return first;
+  const byWallet = { [ADDRESSES[0]]: { status: first.status, looksPublic: !!first.looksPublic, reason: first.reason || null } };
+  let best = first;
+  if (ADDRESSES.length > 1 && !WALLET_INDEPENDENT.has(first.status)) {
+    const rest = await Promise.all(ADDRESSES.slice(1).map((a) => checkOne(a, slug).catch(() => null)));
+    ADDRESSES.slice(1).forEach((a, i) => { const r = rest[i]; if (r && !r.error) { byWallet[a] = { status: r.status, looksPublic: !!r.looksPublic, reason: r.reason || null }; if (OS_RANK(r) < OS_RANK(best)) best = r; } });
+  }
+  for (const [a, w] of Object.entries(byWallet)) if (w.status === "eligible" && !w.looksPublic) rememberEligible(slug, first.openStages, a);
+  return { ...best, byWallet };
+}
+async function scanEvm(chains) {
+  ROWS = new Map(); RECHECK.clear();
+  $("status").textContent = "Loading OpenSea's drop calendar…";
+  const cal = await fetchJson(`/api/drops?chains=${encodeURIComponent(chains)}`);
+  if (cal.errors?.length && !cal.drops.length) throw new Error("OpenSea returned: " + JSON.stringify(cal.errors[0]));
+  const drops = cal.drops;
+  let done = 0, i = 0;
+  const wl = ADDRESSES.length > 1 ? ` · ${ADDRESSES.length} wallets` : "";
+  const tick = () => {
+    $("status").textContent = `Checking ${done}/${drops.length} drops${wl} · ${[...ROWS.values()].filter((d) => d.status === "eligible").length} mintable so far`;
+    $("pbar").firstElementChild.style.width = (done / Math.max(1, drops.length)) * 100 + "%";
+  };
+  tick(); startTicker();
+  await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
+    while (i < drops.length) {
+      const d = drops[i++];
+      try {
+        const res = await checkMerged(d.slug);
+        if (!res.error) {
+          res.image = res.image || d.image; res.contract = res.contract || d.contract; res.chain = res.chain || d.chain;
+          ROWS.set(d.slug, res);
+          if (res.nextStart && res.nextStart > Date.now()) RECHECK.set(d.slug, res.nextStart + 2000);
+        }
+      } catch {}
+      done++; if (done % 3 === 0 || done === drops.length) render();
+      tick();
+    }
+  }));
+  FRESH.os = Date.now(); render();
+  const n = [...ROWS.values()].filter((x) => x.status === "eligible").length;
+  const finished = [...ROWS.values()].filter((x) => x.status === "ended");
+  const lp = ME.launchpad.filter((x) => x.status !== "past").length;
+  $("status").textContent = `Checked ${drops.length} drops · ${n} mintable now${lp ? ` · ${lp} Solana launchpad mints` : ""} · live phases re-check automatically`;
+  $("pbar").hidden = true;
+  if (finished.length) {
+    $("status").textContent += ` · checking ${finished.length} finished drops for mints you already hold…`;
+    await loadHoldings(finished);
+    $("status").textContent = `Checked ${drops.length} drops · ${n} mintable now · ${finished.filter(isMinted).length} finished drops you hold${lp ? ` · ${lp} Solana launchpad mints` : ""} · live phases re-check automatically`;
+  }
+}
+
+function mergeWallets(ws) {
+  if (ws.length === 1) return ws[0];
+  const cols = new Map();
+  for (const w of ws) for (const c of w.collections) {
+    const g = cols.get(c.symbol);
+    if (!g) cols.set(c.symbol, { ...c, items: [...(c.items || [])] });
+    else { g.count += c.count; g.listed += c.listed; g.items = [...g.items, ...(c.items || [])].slice(0, 12); if (g.floor != null) g.value = g.floor * g.count; }
+  }
+  const collections = [...cols.values()].sort((a, b) => b.count - a.count);
+  const valueSol = collections.reduce((s, c) => s + (c.value || 0), 0);
+  return {
+    address: ws[0].address, wallets: ws.map((w) => w.address), chain: "solana", source: "magiceden",
+    nfts: ws.reduce((s, w) => s + w.nfts, 0), more: ws.some((w) => w.more), collections,
+    portfolio: { valueSol, pricedCollections: collections.filter((c) => c.value != null).length, unpricedCollections: collections.filter((c) => c.value == null).length, escrowSol: ws.reduce((s, w) => s + (w.portfolio.escrowSol || 0), 0) || null },
+    activity: ws.flatMap((w) => w.activity.map((a) => ({ ...a, wallet: w.address }))).sort((a, b) => (b.at || 0) - (a.at || 0)),
+  };
+}
+async function scanSol(address) {
+  ME.launchpad = []; ME.trending = []; ME.wallet = null; ME.collections.clear();
+  const steps = [];
+  $("status").textContent = address ? "Reading Magic Eden: launchpad, your NFTs, trending…" : "Reading Magic Eden launchpad and trending collections…";
+  $("pbar").firstElementChild.style.width = "10%";
+  startTicker();
+  const jobs = [
+    loadChainMints().then(() => { if (CHAIN_MINTS.list.length) steps.push(`${CHAIN_MINTS.list.filter((m) => m.status === "live").length} on-chain mints live`); }),
+    fetchJson("/api/me_launchpad").then((r) => { ME.launchpad = r.drops; FRESH.me = Date.now(); steps.push(`${r.counts.live} launchpads minting · ${r.counts.upcoming} upcoming`); }),
+    fetchJson("/api/me_trending?range=1d").then((r) => { ME.trending = r.collections; steps.push(`${r.collections.length} trending`); }),
+  ];
+  if (address) jobs.push(Promise.all(ADDRESSES.map((a) => fetchJson(`/api/me_wallet?address=${encodeURIComponent(a)}`))).then((ws) => { ME.wallet = mergeWallets(ws); steps.push(`${ME.wallet.nfts} NFTs ≈ ${solf(ME.wallet.portfolio.valueSol)}${ws.length > 1 ? ` across ${ws.length} wallets` : ""}`); }));
+  const results = await Promise.allSettled(jobs.map((p) => p.then((v) => { $("pbar").firstElementChild.style.width = (10 + (steps.length / jobs.length) * 90) + "%"; render(); return v; })));
+  const failed = results.filter((r) => r.status === "rejected").map((r) => r.reason.message);
+  $("pbar").hidden = true;
+  if (failed.length === results.length) throw new Error(failed[0]);
+  $("status").textContent = `Magic Eden · ${steps.join(" · ")}${failed.length ? ` · ⚠ ${failed[0]}` : ""}`;
+  render();
+}
+
+$("scan").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  ADDRESSES = parseAddrs($("addr").value); ADDRESS = ADDRESSES[0] || "";
+  const chains = $("chains").value;
+  const allEvm = ADDRESSES.length && ADDRESSES.every(isEvm), allSol = ADDRESSES.length && ADDRESSES.every(isSol);
+  const sol = chains === "solana" || (!chains && allSol) || (allSol && !allEvm);
+  if (!sol && !allEvm) { $("status").textContent = ADDRESSES.length > 1 ? "Mix of address types — scan EVM (0x…) wallets and Solana wallets separately." : "Enter a 0x address (OpenSea) or a Solana address (Magic Eden), or pick Solana to browse the launchpad without one."; return; }
+  if (sol && ADDRESS && !allSol) { $("status").textContent = "Those aren't all Solana addresses."; return; }
+  showUi(); closeSheet(); QUIET_UNTIL = Date.now() + 20000;
+  $("go").disabled = true; $("pbar").hidden = false; $("pbar").firstElementChild.style.width = "0";
+  try {
+    if (sol) { setMode("sol"); ROWS = new Map(); RECHECK.clear(); await scanSol(ADDRESS); }
+    else { setMode("evm"); ME.trending = []; ME.wallet = null; ME.collections.clear(); await scanEvm(chains); }
+  } catch (err) { $("status").textContent = "Error: " + err.message; $("pbar").hidden = true; render(); }
+  finally { $("go").disabled = false; }
+});
+
+/* ---------- single drop / collection ---------- */
+$("one").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  ADDRESSES = parseAddrs($("addr").value); ADDRESS = ADDRESSES[0] || "";
+  const raw = $("slug").value.trim();
+  if (!raw) return;
+  const me = raw.match(/magiceden\.io\/(?:marketplace|launchpad)\/([a-z0-9._-]+)/i);
+  const os = raw.match(/opensea\.io\/collection\/([a-z0-9._-]+)/i);
+  showUi(); $("go1").disabled = true; QUIET_UNTIL = Date.now() + 5000;
+  try {
+    if (me || (!os && isSol(ADDRESS)) || (!os && $("chains").value === "solana")) {
+      const symbol = (me ? me[1] : raw).toLowerCase();
+      if (MODE !== "sol") setMode("sol");
+      $("status").textContent = `Reading ${symbol} on Magic Eden…`;
+      const c = await fetchJson(`/api/me_collection?symbol=${encodeURIComponent(symbol)}${isSol(ADDRESS) ? `&address=${encodeURIComponent(ADDRESS)}` : ""}`);
+      ME.collections.set(c.symbol, c);
+      render(); openSheet("me:cx:" + c.symbol);
+      $("status").textContent = `${c.name}: floor ${solf(c.floor)} · ${c.listed ?? "?"} listed${c.held ? ` · you hold ×${c.held}` : ""}.`;
+    } else {
+      if (!isEvm(ADDRESS)) throw new Error("Enter a 0x wallet address first.");
+      const slug = (os ? os[1] : raw).toLowerCase();
+      if (MODE !== "evm") setMode("evm");
+      $("status").textContent = `Checking ${slug}…`;
+      const res = await checkMerged(slug);
+      if (res.error) throw new Error(res.error);
+      ROWS.set(slug, res);
+      if (res.nextStart && res.nextStart > Date.now()) RECHECK.set(slug, res.nextStart + 2000);
+      if (res.status === "ended") loadHoldings([res]);
+      startTicker(); render(); openSheet("os:" + slug);
+      $("status").textContent = res.status === "eligible" ? "Mintable now." : `${res.name}: ${String(res.status).replace(/_/g, " ")}.`;
+    }
+  } catch (err) { $("status").textContent = "Error: " + err.message; }
+  finally { $("go1").disabled = false; }
+});
+
+/* ---------- controls ---------- */
+$("tabs").addEventListener("click", (e) => { const t = e.target.closest(".tab"); if (!t) return; FILTER = t.dataset.f; render(); });
+$("seg").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-g]"); if (!b) return;
+  for (const o of $("seg").querySelectorAll("button")) o.classList.toggle("on", o === b);
+  GROUP = b.dataset.g; try { localStorage.setItem("mintradar:group", GROUP); } catch {} render();
+});
+try { const g = localStorage.getItem("mintradar:group"); if (g && ["status", "phase", "chain"].includes(g)) { GROUP = g; for (const o of $("seg").querySelectorAll("button")) o.classList.toggle("on", o.dataset.g === g); } } catch {}
+$("hide").addEventListener("click", () => { HIDE = !HIDE; $("hide").classList.toggle("on", HIDE); render(); });
+
+const foldable = (panelId, btnId, key, defaultFolded) => {
+  $(btnId).addEventListener("click", () => {
+    const folded = $(panelId).classList.toggle("folded");
+    $(btnId).innerHTML = folded ? "SHOW &#9660;" : "HIDE &#9650;";
+    try { localStorage.setItem(key, folded ? "1" : "0"); } catch {}
+  });
+  let saved = null; try { saved = localStorage.getItem(key); } catch {}
+  const folded = saved == null ? !!defaultFolded : saved === "1";
+  if (folded) { $(panelId).classList.add("folded"); $(btnId).innerHTML = "SHOW &#9660;"; }
+};
+foldable("panel", "fold", "mintradar:folded");
+foldable("calpanel", "calfold", "mintradar:calfolded");
+foldable("actpanel", "actfold", "mintradar:actfolded");
+foldable("lmpanel", "lmfold", "mintradar:lmfolded", true);
+foldable("ocpanel", "ocfold", "mintradar:ocfolded");
+// LaunchMyNFT embed — the frame only gets a src when the panel is visible, so a folded panel costs nothing.
+const LM_URL = (sort) => `https://www.launchmynft.io/explore?sort=${sort}`;
+let LM_SORT = "latest";
+function lmLoad() {
+  if ($("lmpanel").classList.contains("folded")) return;
+  const f = $("lmframe"), url = LM_URL(LM_SORT);
+  if (f.dataset.src !== url) { $("lmnft").classList.remove("loaded"); f.dataset.src = url; f.src = url; }
+}
+$("lmframe").addEventListener("load", () => $("lmnft").classList.add("loaded"));
+for (const b of document.querySelectorAll(".pill[data-lm]")) b.addEventListener("click", () => {
+  for (const o of document.querySelectorAll(".pill[data-lm]")) o.classList.toggle("on", o === b);
+  LM_SORT = b.dataset.lm; $("lmopen").href = LM_URL(LM_SORT); lmLoad();
+});
+$("lmfold").addEventListener("click", lmLoad);
+lmLoad();
+
+for (const b of document.querySelectorAll(".pill[data-h]")) b.addEventListener("click", () => {
+  for (const o of document.querySelectorAll(".pill[data-h]")) o.classList.toggle("on", o === b);
+  CAL_HORIZON = Number(b.dataset.h); renderTimeline();
+});
+$("calmine").addEventListener("click", () => { CAL_MINE = !CAL_MINE; $("calmine").classList.toggle("on", CAL_MINE); renderTimeline(); });
+
+$("out").addEventListener("click", (e) => {
+  const gh = e.target.closest(".gh");
+  if (gh) { const key = gh.parentElement.dataset.g; FOLDED.has(key) ? FOLDED.delete(key) : FOLDED.add(key); render(); return; }
+  if (e.target.closest("a.lk")) return;          // mini link bubbles navigate on their own
+  const b = e.target.closest(".bub"); if (b) openSheet(b.dataset.id);
+});
+$("out").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const b = e.target.closest(".bub"); if (b && e.target === b) { e.preventDefault(); openSheet(b.dataset.id); }
+});
+$("chips").addEventListener("click", (e) => { const c = e.target.closest(".chip"); if (c) openSheet(c.dataset.id); });
+$("ocbody").addEventListener("click", (e) => {
+  const th = e.target.closest("th[data-k]");
+  if (th) { TSORT = { key: th.dataset.k, dir: TSORT.key === th.dataset.k ? -TSORT.dir : 1 }; render(); return; }
+  if (e.target.closest("a.lk")) return;
+  const t = e.target.closest(".bub,tr.row"); if (t) openSheet(t.dataset.id);
+});
+$("timeline").addEventListener("click", (e) => { const r = e.target.closest(".row[data-id]"); if (r) { e.preventDefault(); openSheet(r.dataset.id); } });
+$("veil").addEventListener("click", closeSheet);
+$("sx").addEventListener("click", closeSheet);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeSheet(); closeCalendars(); palClose(); } });
+
+document.addEventListener("click", async (e) => {
+  const c = e.target.closest("[data-copy]");
+  if (c) { navigator.clipboard?.writeText(c.dataset.copy); const t = c.textContent; c.textContent = "COPIED"; setTimeout(() => { c.textContent = t; }, 900); return; }
+  const r = e.target.closest("[data-recheck]");
+  if (r) { r.textContent = "CHECKING…"; await recheck(r.dataset.recheck); return; }
+  const d = e.target.closest("[data-detail]");
+  if (d) {
+    d.textContent = "LOADING…";
+    try {
+      const c = await fetchJson(`/api/me_collection?symbol=${encodeURIComponent(d.dataset.detail)}${isSol(ADDRESS) ? `&address=${encodeURIComponent(ADDRESS)}` : ""}`);
+      ME.collections.set(c.symbol, c); render(); openSheet("me:cx:" + c.symbol);
+    } catch (err) { d.textContent = "FAILED"; }
+  }
+});
+
+/* ---------- CALENDARS view: both APIs, no wallet needed, grouped by chain ---------- */
+const CALV = { os: null, me: null, at: 0, horizon: 0, errors: [] };
+async function loadCalendars(force) {
+  if (!force && CALV.at && Date.now() - CALV.at < 120_000) return;
+  CALV.errors = [];
+  const [os, me] = await Promise.allSettled([fetchJson("/api/drops"), fetchJson("/api/me_launchpad?days=7"), loadChainMints()]);
+  if (os.status === "fulfilled") CALV.os = os.value.drops; else CALV.errors.push("OpenSea: " + os.reason.message);
+  if (me.status === "fulfilled") { CALV.me = me.value.drops; ME.launchpad = me.value.drops; } else CALV.errors.push("Magic Eden: " + me.reason.message);
+  CALV.at = Date.now();
+}
+function calRows() {
+  const now = Date.now();
+  const rows = [];   // {chain, src, at, live, name, image, meta, url, id}
+  for (const d of CALV.os || []) {
+    const live = d.isMinting || !!d.activeStage;
+    const at = toMsClient(d.nextStage?.start);
+    if (!live && !(at && at > now)) continue;
+    const full = ROWS.get(d.slug);
+    const ph = live ? (d.activeStage?.label || "LIVE") : (d.nextStage?.label || "next stage");
+    rows.push({ chain: d.chain || "other", src: "opensea", at: live ? (toMsClient(d.activeStage?.end) || 0) : at, live, name: d.name, image: d.image, url: d.url,
+      cat: catOf({ type: live ? d.activeStage?.type : d.nextStage?.type, label: ph }), meta: full && full.allStages ? `${full.allStages.length} stages` : "", id: full ? "os:" + d.slug : null, slug: d.slug });
+  }
+  for (const m of CHAIN_MINTS.list) {
+    if (m.status !== "live" && m.status !== "upcoming") continue;
+    const ph = m.phase || {};
+    rows.push({ chain: "solana", src: "onchain", at: m.status === "live" ? (ph.endAt && ph.endAt > now ? ph.endAt : null) : m.nextStart, opened: ph.startAt, live: m.status === "live", name: m.name, image: m.image, url: m.collectionUrl, cat: ph.allowList ? "WL" : "PUBLIC",
+      meta: `${ph.priceSol != null ? solf(ph.priceSol) : "token"} · ${m.itemsRedeemed}/${m.itemsAvailable || "?"} minted${m.deployedNow ? " · new" : ""}`, id: "cm:" + m.candyMachine });
+  }
+  for (const l of CALV.me || []) {
+    if (l.status === "past" || !l.launchAt) continue;
+    rows.push({ chain: "solana", src: "magiceden", at: l.status === "live" ? null : l.launchAt, opened: l.launchAt, live: l.status === "live", name: l.name, image: l.image, url: l.url, cat: "LAUNCH",
+      meta: `${solf(l.price)}${l.size ? ` · ${l.size} supply` : ""}${l.floor != null ? ` · floor ${solf(l.floor)}` : ""}`, id: "me:lp:" + l.symbol });
+  }
+  return rows;
+}
+const toMsClient = (t) => { if (t == null) return null; if (typeof t === "number") return t < 1e12 ? t * 1000 : t; const n = Number(t); if (!Number.isNaN(n)) return n < 1e12 ? n * 1000 : n; const d = Date.parse(t); return Number.isNaN(d) ? null : d; };
+function renderCalendars() {
+  const now = Date.now();
+  const cutoff = CALV.horizon ? now + CALV.horizon * 86400000 : Infinity;
+  const all = calRows().filter((r) => r.live || r.at <= cutoff);
+  all.sort((a, b) => (b.live - a.live) || (a.at || Infinity) - (b.at || Infinity));
+  const byChain = new Map();
+  for (const r of all) { if (!byChain.has(r.chain)) byChain.set(r.chain, []); byChain.get(r.chain).push(r); }
+  const order = (c) => c === "solana" ? 2 : c === "ethereum" ? 0 : c === "base" ? 1 : 3;
+  const chains = [...byChain.entries()].sort((a, b) => order(a[0]) - order(b[0]) || b[1].length - a[1].length);
+  const upcoming = all.filter((r) => !r.live).length, live = all.filter((r) => r.live).length;
+  $("calvmeta").innerHTML = `<b style="color:var(--orange)">${live}</b> minting now · <b style="color:var(--soft)">${upcoming}</b> upcoming · ${chains.length} chain${chains.length === 1 ? "" : "s"}${CALV.at ? ` · updated ${ago(CALV.at)}` : ""}${CALV.errors.length ? ` · ⚠ ${esc(CALV.errors.join(" · "))}` : ""}`;
+
+  const row = (r) => {
+    const when = r.live ? (r.at ? `<span class="when" data-at="${r.at}">${countdown(r.at)}</span>` : `<span class="when">LIVE</span>`) : `<span class="when" data-at="${r.at}">${countdown(r.at)}</span>`;
+    const tail = r.live ? (r.at ? "ends" : r.opened ? `opened ${ago(r.opened)}` : "open now") : new Date(r.at).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    return `<a class="row${r.live ? " soon" : ""}" href="${esc(r.url)}" target="_blank" rel="noopener" ${r.id ? `data-id="${esc(r.id)}"` : `data-slug="${esc(r.slug || "")}"`}>
+      ${when}<span class="ph ${r.live ? "live" : r.cat === "PUBLIC" ? "pub" : r.src === "magiceden" ? "sol" : "al"}">${esc(r.live ? "LIVE · " + r.cat : r.cat)}</span>
+      <span class="nm">${r.image ? `<img class="img" src="${esc(r.image)}" alt="" loading="lazy" onerror="this.remove()">` : ""}${esc(r.name)} <span class="meta2">${esc(r.meta)}</span></span>
+      <span class="meta2 tail">${esc(tail)}</span></a>`;
+  };
+  const block = (title, sub, list) => `<div class="src"><h4><span>${title}</span><i>${sub}</i></h4><div class="tl">${list.length ? list.map(row).join("") : `<div class="empty3">Nothing scheduled in this window.</div>`}</div></div>`;
+
+  $("calbody").innerHTML = chains.length ? chains.map(([c, list]) => {
+    const me = list.filter((r) => r.src === "magiceden"), os = list.filter((r) => r.src === "opensea"), oc = list.filter((r) => r.src === "onchain");
+    return `<div class="chainh"><b>${esc(CHAIN_ABBR(c))}</b> ${esc(CHAIN_NAME(c))} <span>${list.length}</span></div>`
+      + (c === "solana" ? block("On-chain — Candy Machine mints", CHAIN_MINTS.disabled ? "off — set HELIUS_API_KEY or QUICKNODE_RPC_URL in Vercel to read every Solana mint straight from the chain" : `${oc.length} live or scheduled · any launchpad`, oc) : "")
+      + (c === "solana" || me.length ? block("Magic Eden — upcoming mints", `${me.length} launchpad mint${me.length === 1 ? "" : "s"}`, me) : "")
+      + (c === "solana" ? `<div class="src"><h4><span>LaunchMyNFT — live mints</span><i>no calendar API — mints go live on deploy</i></h4><div class="tl"><a class="row" href="#" data-lm-open="1"><span class="when">LIVE</span><span class="ph al">EXPLORE</span><span class="nm">See what's minting right now on LaunchMyNFT <span class="meta2">embedded on the main page</span></span><span class="meta2 tail">open widget ↗</span></a></div></div>` : "")
+      + (c !== "solana" || os.length ? block("OpenSea — upcoming mints", `${os.length} drop${os.length === 1 ? "" : "s"} · featured, upcoming and live calendars`, os) : "");
+  }).join("") : `<div class="empty3">${CALV.errors.length ? "Couldn't load calendars." : "Nothing scheduled."}</div>`;
+}
+async function openCalendars() {
+  $("cal").classList.add("on"); $("cal").setAttribute("aria-hidden", "false"); document.body.style.overflow = "hidden";
+  startTicker();
+  if (!CALV.at) $("calbody").innerHTML = `<div class="empty3">Loading OpenSea and Magic Eden calendars…</div>`;
+  await loadCalendars(false); renderCalendars();
+}
+function closeCalendars() { $("cal").classList.remove("on"); $("cal").setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
+$("calbtn").addEventListener("click", openCalendars);
+$("calx").addEventListener("click", closeCalendars);
+$("calrefresh").addEventListener("click", async () => { $("calrefresh").textContent = "…"; await loadCalendars(true); renderCalendars(); $("calrefresh").textContent = "REFRESH"; });
+for (const b of $("cal").querySelectorAll(".pill[data-ch]")) b.addEventListener("click", () => {
+  for (const o of $("cal").querySelectorAll(".pill[data-ch]")) o.classList.toggle("on", o === b);
+  CALV.horizon = Number(b.dataset.ch); renderCalendars();
+});
+$("calbody").addEventListener("click", (e) => {
+  const lm = e.target.closest("[data-lm-open]");
+  if (lm) { e.preventDefault(); closeCalendars(); $("lmpanel").classList.remove("folded"); $("lmfold").innerHTML = "HIDE &#9650;"; lmLoad(); $("lmpanel").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  const r = e.target.closest(".row[data-id]");
+  if (r && ITEMS.has(r.dataset.id)) { e.preventDefault(); closeCalendars(); openSheet(r.dataset.id); }
+});
+
+/* ---------- prices, auto-refresh ---------- */
+async function loadPrices() {
+  try { const p = await fetchJson("/api/prices"); PRICES.sol = p.sol; PRICES.eth = p.eth; PRICES.at = Date.now(); if (ITEMS.size) render(); } catch {}
+}
+loadPrices(); setInterval(loadPrices, 5 * 60000);
+// Poll the fast-moving sources. Results are edge-cached (90 s / 2 min) so this costs nothing upstream.
+setInterval(() => { if (document.hidden) return; if (CHAIN_MINTS.at) loadChainMints(); }, 60000);
+setInterval(async () => { if (document.hidden || !ME.launchpad.length && MODE !== "sol") return; try { const r = await fetchJson("/api/me_launchpad"); ME.launchpad = r.drops; FRESH.me = Date.now(); render(); } catch {} }, 150000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && CHAIN_MINTS.at && Date.now() - CHAIN_MINTS.at > 60000) loadChainMints(); });
+
+/* ---------- view / dense / sound ---------- */
+$("viewseg").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-v]"); if (!b) return;
+  for (const o of $("viewseg").querySelectorAll("button")) o.classList.toggle("on", o === b);
+  VIEW = b.dataset.v; try { localStorage.setItem("mintradar:view", VIEW); } catch {} render();
+});
+try { const v = localStorage.getItem("mintradar:view"); if (v === "table" || v === "bubbles") { VIEW = v; for (const o of $("viewseg").querySelectorAll("button")) o.classList.toggle("on", o.dataset.v === v); } } catch {}
+$("out").addEventListener("click", (e) => {
+  const th = e.target.closest("th[data-k]");
+  if (th) { TSORT = { key: th.dataset.k, dir: TSORT.key === th.dataset.k ? -TSORT.dir : 1 }; render(); return; }
+  if (e.target.closest("a.lk")) return;
+  const tr = e.target.closest("tr.row"); if (tr) openSheet(tr.dataset.id);
+});
+$("sigf").addEventListener("click", () => { SIGF = !SIGF; $("sigf").classList.toggle("on", SIGF); render(); });
+fetchJson("/api/alerts_config").then((c) => { TGCFG.enabled = !!c.enabled; TGCFG.bot = c.bot; if (TGCFG.enabled) { $("tgpill").hidden = false; $("tgpill").href = `https://t.me/${TGCFG.bot}`; if (ITEMS.size) render(); } }).catch(() => {});
+$("dense").addEventListener("click", () => { const on = document.body.classList.toggle("dense"); $("dense").classList.toggle("on", on); try { localStorage.setItem("mintradar:dense", on ? "1" : ""); } catch {} });
+try { if (localStorage.getItem("mintradar:dense")) { document.body.classList.add("dense"); $("dense").classList.add("on"); } } catch {}
+$("sound").addEventListener("click", () => { SOUND = !SOUND; $("sound").classList.toggle("on", SOUND); $("sound").textContent = SOUND ? "🔔 SOUND" : "🔇 SOUND"; if (SOUND) beep(); });
+$("feed").addEventListener("click", (e) => { const ev = e.target.closest(".ev[data-id]"); if (ev && ITEMS.has(ev.dataset.id)) openSheet(ev.dataset.id); });
+
+/* ---------- ⌘K command palette ---------- */
+let PAL_IDX = 0, PAL_ITEMS = [];
+const COMMANDS = [
+  { k: "VIEW", label: "Circles view", run: () => $("viewseg").querySelector('[data-v="bubbles"]').click() },
+  { k: "VIEW", label: "Table view", run: () => $("viewseg").querySelector('[data-v="table"]').click() },
+  { k: "VIEW", label: "Toggle dense mode", run: () => $("dense").click() },
+  { k: "VIEW", label: "Toggle sound on phase open", run: () => $("sound").click() },
+  { k: "GO", label: "Open Calendars", run: openCalendars },
+  { k: "GO", label: "Browse Solana mints (no address)", run: () => { $("chains").value = "solana"; $("addr").value = ""; $("scan").requestSubmit(); } },
+  { k: "GROUP", label: "Group by status", run: () => $("seg").querySelector('[data-g="status"]').click() },
+  { k: "GROUP", label: "Group by phase", run: () => $("seg").querySelector('[data-g="phase"]').click() },
+  { k: "GROUP", label: "Group by chain", run: () => $("seg").querySelector('[data-g="chain"]').click() },
+  { k: "FILTER", label: "Show everything", run: () => { FILTER = "all"; render(); } },
+  { k: "FILTER", label: "Hide what I can't mint (toggle)", run: () => $("hide").click() },
+  { k: "FILTER", label: "HOT+ signal only (toggle)", run: () => $("sigf").click() },
+  { k: "PANEL", label: "Show / hide LaunchMyNFT widget", run: () => $("lmfold").click() },
+  { k: "PANEL", label: "Show / hide Solana on-chain mints", run: () => $("ocfold").click() },
+];
+function palRender(q) {
+  q = q.trim(); const ql = q.toLowerCase();
+  const out = [];
+  if (isEvm(q)) out.push({ k: "SCAN", label: `Scan OpenSea drops for ${short(q)}`, run: () => { $("addr").value = q; $("chains").value = ""; $("scan").requestSubmit(); } });
+  else if (isSol(q)) out.push({ k: "SCAN", label: `Scan Magic Eden for ${short(q)}`, run: () => { $("addr").value = q; $("chains").value = ""; $("scan").requestSubmit(); } });
+  else if (/opensea\.io\/collection\/|magiceden\.io\//i.test(q)) out.push({ k: "CHECK", label: `Check ${q.slice(0, 60)}`, run: () => { $("slug").value = q; $("one").requestSubmit(); } });
+  for (const it of ITEMS.values()) if (!ql || it.name.toLowerCase().includes(ql)) out.push({ k: (STATUS_META[it.status]?.label || "item").split(" ")[0].toUpperCase(), label: it.name, sub: `${SRC_NAME[it.src_] || ""} · ${CHAIN_ABBR(it.chain)}`, image: it.image, run: () => openSheet(it.id) });
+  for (const c of COMMANDS) if (!ql || c.label.toLowerCase().includes(ql)) out.push(c);
+  if (ql && !out.length) out.push({ k: "CHECK", label: `Check "${q}" as an OpenSea / Magic Eden slug`, run: () => { $("slug").value = q; $("one").requestSubmit(); } });
+  PAL_ITEMS = out.slice(0, 40); PAL_IDX = 0;
+  $("pallist").innerHTML = PAL_ITEMS.map((c, i) => `<div class="it${i === 0 ? " on" : ""}" data-i="${i}">${c.image ? `<img src="${esc(c.image)}" alt="">` : c.sub ? `<span class="ph2"></span>` : ""}<span class="k">${esc(c.k)}</span><span>${esc(c.label)}${c.sub ? ` <small>· ${esc(c.sub)}</small>` : ""}</span></div>`).join("");
+}
+function palOpen() { $("pal").classList.add("on"); $("pal").setAttribute("aria-hidden", "false"); $("palin").value = ""; palRender(""); setTimeout(() => $("palin").focus(), 30); }
+function palClose() { $("pal").classList.remove("on"); $("pal").setAttribute("aria-hidden", "true"); }
+function palRun(i) { const c = PAL_ITEMS[i]; if (!c) return; palClose(); c.run(); }
+$("palbtn").addEventListener("click", palOpen);
+$("pal").addEventListener("click", (e) => { if (e.target === $("pal")) palClose(); const it = e.target.closest(".it"); if (it) palRun(Number(it.dataset.i)); });
+$("palin").addEventListener("input", () => palRender($("palin").value));
+$("palin").addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); PAL_IDX = (PAL_IDX + (e.key === "ArrowDown" ? 1 : -1) + PAL_ITEMS.length) % Math.max(1, PAL_ITEMS.length); [...$("pallist").children].forEach((el, i) => el.classList.toggle("on", i === PAL_IDX)); $("pallist").children[PAL_IDX]?.scrollIntoView({ block: "nearest" }); }
+  else if (e.key === "Enter") { e.preventDefault(); palRun(PAL_IDX); }
+  else if (e.key === "Escape") palClose();
+});
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("pal").classList.contains("on") ? palClose() : palOpen(); }
+  else if (e.key === "/" && !/input|textarea/i.test(document.activeElement?.tagName || "")) { e.preventDefault(); palOpen(); }
+});
+
+/* ---------- upcoming mints, shown before any scan ---------- */
+async function loadChainMints() {
+  try {
+    const r = await fetchJson("/api/sol_mints");
+    CHAIN_MINTS.list = r.mints || []; CHAIN_MINTS.disabled = !!r.disabled; CHAIN_MINTS.at = Date.now(); FRESH.chain = Date.now();
+  } catch (err) { CHAIN_MINTS.list = []; CHAIN_MINTS.error = err.message; }
+  render();
+}
+async function loadUpcoming() {
+  $("status").textContent = "Loading upcoming mints…"; QUIET_UNTIL = Date.now() + 20000;
+  loadChainMints();
+  try {
+    const r = await fetchJson("/api/me_launchpad");
+    ME.launchpad = r.drops; FRESH.me = Date.now();
+    setMode("sol"); showUi(); startTicker(); render();
+    const oc = CHAIN_MINTS.list.filter((m) => m.status === "live").length;
+    $("elig").innerHTML = `<b style="color:var(--orange)">${r.counts.live}</b> launchpad mint${r.counts.live === 1 ? "" : "s"} live · <b style="color:var(--soft)">${r.counts.upcoming}</b> upcoming on Magic Eden${CHAIN_MINTS.disabled ? " · on-chain radar off (set HELIUS_API_KEY or QUICKNODE_RPC_URL)" : oc ? ` · <b style="color:var(--soft)">${oc}</b> minting on-chain right now` : ""}. Paste a 0x address to scan OpenSea drops, or a Solana address to see your NFTs and activity.`;
+    $("status").textContent = `Magic Eden launchpad · ${r.counts.live} minting now · ${r.counts.upcoming} upcoming · ${r.counts.past} recent. Scan an address for more.`;
+  } catch (err) { $("status").textContent = "Couldn't load the Magic Eden launchpad: " + err.message; }
+}
+
+// Deep link: ?address=…  or  ?sol=1 — otherwise show upcoming mints right away.
+try {
+  const q = new URLSearchParams(location.search);
+  if (q.get("address")) { $("addr").value = q.get("address"); $("scan").requestSubmit(); }
+  else if (q.get("sol")) { $("chains").value = "solana"; $("scan").requestSubmit(); }
+  else loadUpcoming();
+} catch { loadUpcoming(); }
+</script>
+</body>
+</html>

@@ -110,11 +110,18 @@ The radar works with the tab closed. Optional — the 🔔 buttons only appear o
 
        curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<your-app>/api/tg&secret_token=<ALERTS_SECRET>"
 
-5. **Schedule the tick** every ~5 minutes. `vercel.json` already declares a Vercel Cron
-   (`*/5 * * * *`) — on Hobby plans Vercel only runs crons once a day, so either upgrade or point a
-   free scheduler such as [cron-job.org](https://cron-job.org) at
-   `https://<your-app>/api/alerts_tick?secret=<ALERTS_SECRET>`. (Vercel's own `CRON_SECRET` bearer
-   header is accepted too.)
+5. **Schedule the tick** every ~5 minutes with a free external scheduler such as
+   [cron-job.org](https://cron-job.org), pointed at
+   `https://<your-app>/api/alerts_tick?secret=<ALERTS_SECRET>`.
+
+   > **Do not put a sub-daily `crons` block in `vercel.json` on a Hobby plan.** Vercel Hobby allows
+   > cron jobs only once per day, and a more frequent expression makes the **deployment itself fail**
+   > — the site keeps serving the previous build with no obvious error on the page. That is why
+   > `vercel.json` here declares no crons. On a Pro plan you can add:
+   >
+   >     "crons": [{ "path": "/api/alerts_tick", "schedule": "*/5 * * * *" }]
+   >
+   > Vercel's own `CRON_SECRET` bearer header is accepted by the route as well as `?secret=`.
 
 **What users get.** In the app, every mint's detail sheet has a **🔔 TELEGRAM ALERT** button — it
 deep-links into the bot and starts the watch with one tap. In the bot: `/watch <id>`, `/unwatch`,

@@ -60,6 +60,21 @@ launchpad and trending without an address. `?address=…` or `?sol=1` in the URL
 - The page loops through the calendar 4 at a time, renders hits as they land, runs live
   countdowns, and re-checks a drop automatically the moment its next phase opens.
 
+## LaunchMyNFT widget
+
+LaunchMyNFT has no public API and no upcoming-mints calendar (collections go live the moment a
+creator deploys them), so the app embeds its live explore page — LATEST / HOT — in a collapsible
+panel. The frame only loads while the panel is open. It's also linked from the Solana section of
+CALENDARS.
+
+## Calendars
+
+The **CALENDARS** button opens a full view built from both APIs with no wallet needed:
+OpenSea's featured / upcoming / live drop calendars (`/api/drops`) and Magic Eden's launchpad
+(`/api/me_launchpad`), grouped by chain (Ethereum, Base, …, Solana) with Magic Eden and OpenSea
+listed as separate categories under each chain. Live mints first, then soonest. ALL / 24H / 7D / 30D
+narrow the window; REFRESH re-pulls (results are cached 2 min).
+
 ## Mint calendar
 
 Its own collapsible widget: every phase OpenSea has scheduled that hasn't started yet,

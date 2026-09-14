@@ -217,6 +217,37 @@ select{appearance:none;-webkit-appearance:none;padding-right:28px;background-ima
 .sales div{display:flex;justify-content:space-between;gap:8px;background:var(--card);border-radius:8px;padding:5px 10px;font-size:10px;color:var(--soft)}
 .sales div span:last-child{color:var(--muted)}
 
+/* ---------- LaunchMyNFT widget ---------- */
+.lmnft{margin-top:12px;background:var(--card);border-radius:14px;overflow:hidden;position:relative}
+.lmnft iframe{display:block;width:100%;height:min(70vh,720px);border:0;background:var(--card)}
+.lmnft .ph3{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:11px;pointer-events:none}
+.lmnft.loaded .ph3{display:none}
+@media (max-width:600px){.lmnft iframe{height:80vh}}
+.panel.folded .lmnft{display:none}
+.lmnft-src{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ---------- calendars view ---------- */
+.cal{position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;display:none;padding:16px clamp(16px,3vw,24px) 60px}
+.cal.on{display:block}
+@media (min-width:900px){.cal{inset:24px;border-radius:22px;box-shadow:0 20px 80px rgba(0,0,0,.6);border:1px solid var(--chip)}}
+.cal .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;position:sticky;top:0;background:var(--bg);padding:6px 0 10px;z-index:1}
+.cal .head h3{margin:0;font-size:15px;letter-spacing:.06em;display:flex;align-items:center;gap:10px}
+.cal .head h3 b{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--orange);color:#fff;font-size:15px}
+.cal .head em{color:var(--muted);font-style:normal;font-size:11px;flex:1 1 200px}
+.cal .head .x2{background:var(--panel);border:1px solid var(--chip);color:var(--text);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:14px}
+.cal .chainh{display:flex;align-items:center;gap:10px;margin:22px 0 10px;color:var(--muted);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.cal .chainh b{background:var(--soft);color:#13140e;padding:5px 12px;border-radius:999px}
+.cal .chainh:after{content:"";flex:1;height:1px;background:var(--card)}
+.cal .src{background:var(--panel);border-radius:16px;padding:12px 14px;margin-bottom:10px}
+.cal .src h4{margin:0 0 8px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;gap:10px;align-items:center}
+.cal .src h4 span{background:var(--card);color:var(--soft);padding:4px 10px;border-radius:999px}
+.cal .src h4 i{font-style:normal;color:var(--dim);font-weight:400;letter-spacing:0;text-transform:none}
+.cal .src .tl{margin-top:0}
+.cal .tl .ph.live{background:var(--orange);color:#fff}
+.cal .empty3{color:var(--dim);font-size:11px;padding:6px 2px}
+.cal .row .img{width:28px;height:28px;border-radius:50%;object-fit:cover;background:var(--chip);vertical-align:middle;margin-right:8px}
+@media (max-width:600px){.cal .row .img{display:none}}
+
 .legend{display:flex;gap:16px;margin-top:22px;color:var(--muted);font-size:10px;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
 .note{color:var(--dim);font-size:10px;margin-top:10px;line-height:1.6}
@@ -239,6 +270,7 @@ select{appearance:none;-webkit-appearance:none;padding-right:28px;background-ima
           <option value="solana">Solana (Magic Eden)</option>
         </select>
         <button id="go" class="btn" type="submit">SCAN</button>
+        <button id="calbtn" class="btn ghost" type="button">CALENDARS</button>
       </form>
       <form id="one">
         <input id="slug" placeholder="or one drop: OpenSea / Magic Eden URL or slug" autocomplete="off" spellcheck="false">
@@ -271,6 +303,19 @@ select{appearance:none;-webkit-appearance:none;padding-right:28px;background-ima
     <div class="acts" id="acts"></div>
   </div>
 
+  <div class="panel" id="lmpanel">
+    <h2><span class="tt">LaunchMyNFT · live mints</span><em>Solana mints go live on LaunchMyNFT the moment a creator deploys — there's no schedule to read, so the live explore page is embedded here. Prices are in each chain's native token.</em>
+      <span class="calctl">
+        <span class="lmnft-src">
+          <button class="pill on" data-lm="latest" type="button">LATEST</button>
+          <button class="pill" data-lm="hot" type="button">HOT</button>
+        </span>
+        <a class="pill" href="https://www.launchmynft.io/explore?sort=latest" target="_blank" rel="noopener" id="lmopen">OPEN ↗</a>
+        <button class="toggle" id="lmfold" type="button">HIDE &#9650;</button>
+      </span></h2>
+    <div class="lmnft" id="lmnft"><div class="ph3">Loading LaunchMyNFT…</div><iframe id="lmframe" title="LaunchMyNFT explore — live mints" loading="lazy" referrerpolicy="no-referrer-when-downgrade" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"></iframe></div>
+  </div>
+
   <div class="bar" id="bar" hidden>
     <div class="tabs" id="tabs"></div>
     <div class="seg" id="seg"><span class="lbl2">GROUP BY</span>
@@ -298,6 +343,20 @@ select{appearance:none;-webkit-appearance:none;padding-right:28px;background-ima
   </p>
 </div>
 
+<section class="cal" id="cal" aria-hidden="true">
+  <div class="head">
+    <h3><b>▦</b>CALENDARS</h3><em id="calvmeta">upcoming mints from Magic Eden and OpenSea, grouped by chain</em>
+    <span class="calctl" style="margin-left:0">
+      <button class="pill on" data-ch="0" type="button">ALL</button>
+      <button class="pill" data-ch="1" type="button">24H</button>
+      <button class="pill" data-ch="7" type="button">7D</button>
+      <button class="pill" data-ch="30" type="button">30D</button>
+      <button class="pill" id="calrefresh" type="button">REFRESH</button>
+    </span>
+    <button class="x2" id="calx" type="button" aria-label="Close">✕</button>
+  </div>
+  <div id="calbody"><div class="empty3">Loading…</div></div>
+</section>
 <div class="veil" id="veil"></div>
 <aside class="sheet" id="sheet" aria-hidden="true"><div class="grab"></div><button class="x" id="sx" type="button" aria-label="Close">✕</button><div id="sheetbody"></div></aside>
 
@@ -967,6 +1026,22 @@ const foldable = (panelId, btnId, key) => {
 foldable("panel", "fold", "mintradar:folded");
 foldable("calpanel", "calfold", "mintradar:calfolded");
 foldable("actpanel", "actfold", "mintradar:actfolded");
+foldable("lmpanel", "lmfold", "mintradar:lmfolded");
+// LaunchMyNFT embed — the frame only gets a src when the panel is visible, so a folded panel costs nothing.
+const LM_URL = (sort) => `https://www.launchmynft.io/explore?sort=${sort}`;
+let LM_SORT = "latest";
+function lmLoad() {
+  if ($("lmpanel").classList.contains("folded")) return;
+  const f = $("lmframe"), url = LM_URL(LM_SORT);
+  if (f.dataset.src !== url) { $("lmnft").classList.remove("loaded"); f.dataset.src = url; f.src = url; }
+}
+$("lmframe").addEventListener("load", () => $("lmnft").classList.add("loaded"));
+for (const b of document.querySelectorAll(".pill[data-lm]")) b.addEventListener("click", () => {
+  for (const o of document.querySelectorAll(".pill[data-lm]")) o.classList.toggle("on", o === b);
+  LM_SORT = b.dataset.lm; $("lmopen").href = LM_URL(LM_SORT); lmLoad();
+});
+$("lmfold").addEventListener("click", lmLoad);
+lmLoad();
 
 for (const b of document.querySelectorAll(".pill[data-h]")) b.addEventListener("click", () => {
   for (const o of document.querySelectorAll(".pill[data-h]")) o.classList.toggle("on", o === b);
@@ -983,7 +1058,7 @@ $("chips").addEventListener("click", (e) => { const c = e.target.closest(".chip"
 $("timeline").addEventListener("click", (e) => { const r = e.target.closest(".row[data-id]"); if (r) { e.preventDefault(); openSheet(r.dataset.id); } });
 $("veil").addEventListener("click", closeSheet);
 $("sx").addEventListener("click", closeSheet);
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeSheet(); closeCalendars(); } });
 
 document.addEventListener("click", async (e) => {
   const c = e.target.closest("[data-copy]");
@@ -998,6 +1073,88 @@ document.addEventListener("click", async (e) => {
       ME.collections.set(c.symbol, c); render(); openSheet("me:cx:" + c.symbol);
     } catch (err) { d.textContent = "FAILED"; }
   }
+});
+
+/* ---------- CALENDARS view: both APIs, no wallet needed, grouped by chain ---------- */
+const CALV = { os: null, me: null, at: 0, horizon: 0, errors: [] };
+const CHAIN_NAME = (c) => ({ ethereum: "Ethereum", base: "Base", solana: "Solana", abstract: "Abstract", ape_chain: "ApeChain", ink: "Ink", robinhood: "Robinhood" }[c] || c);
+async function loadCalendars(force) {
+  if (!force && CALV.at && Date.now() - CALV.at < 120_000) return;
+  CALV.errors = [];
+  const [os, me] = await Promise.allSettled([fetchJson("/api/drops"), fetchJson("/api/me_launchpad?days=7")]);
+  if (os.status === "fulfilled") CALV.os = os.value.drops; else CALV.errors.push("OpenSea: " + os.reason.message);
+  if (me.status === "fulfilled") { CALV.me = me.value.drops; ME.launchpad = me.value.drops; } else CALV.errors.push("Magic Eden: " + me.reason.message);
+  CALV.at = Date.now();
+}
+function calRows() {
+  const now = Date.now();
+  const rows = [];   // {chain, src, at, live, name, image, meta, url, id}
+  for (const d of CALV.os || []) {
+    const live = d.isMinting || !!d.activeStage;
+    const at = toMsClient(d.nextStage?.start);
+    if (!live && !(at && at > now)) continue;
+    const full = ROWS.get(d.slug);
+    const ph = live ? (d.activeStage?.label || "LIVE") : (d.nextStage?.label || "next stage");
+    rows.push({ chain: d.chain || "other", src: "opensea", at: live ? (toMsClient(d.activeStage?.end) || 0) : at, live, name: d.name, image: d.image, url: d.url,
+      cat: catOf({ type: live ? d.activeStage?.type : d.nextStage?.type, label: ph }), meta: full && full.allStages ? `${full.allStages.length} stages` : "", id: full ? "os:" + d.slug : null, slug: d.slug });
+  }
+  for (const l of CALV.me || []) {
+    if (l.status === "past" || !l.launchAt) continue;
+    rows.push({ chain: "solana", src: "magiceden", at: l.status === "live" ? null : l.launchAt, opened: l.launchAt, live: l.status === "live", name: l.name, image: l.image, url: l.url, cat: "LAUNCH",
+      meta: `${solf(l.price)}${l.size ? ` · ${l.size} supply` : ""}${l.floor != null ? ` · floor ${solf(l.floor)}` : ""}`, id: "me:lp:" + l.symbol });
+  }
+  return rows;
+}
+const toMsClient = (t) => { if (t == null) return null; if (typeof t === "number") return t < 1e12 ? t * 1000 : t; const n = Number(t); if (!Number.isNaN(n)) return n < 1e12 ? n * 1000 : n; const d = Date.parse(t); return Number.isNaN(d) ? null : d; };
+function renderCalendars() {
+  const now = Date.now();
+  const cutoff = CALV.horizon ? now + CALV.horizon * 86400000 : Infinity;
+  const all = calRows().filter((r) => r.live || r.at <= cutoff);
+  all.sort((a, b) => (b.live - a.live) || (a.at || Infinity) - (b.at || Infinity));
+  const byChain = new Map();
+  for (const r of all) { if (!byChain.has(r.chain)) byChain.set(r.chain, []); byChain.get(r.chain).push(r); }
+  const order = (c) => c === "solana" ? 2 : c === "ethereum" ? 0 : c === "base" ? 1 : 3;
+  const chains = [...byChain.entries()].sort((a, b) => order(a[0]) - order(b[0]) || b[1].length - a[1].length);
+  const upcoming = all.filter((r) => !r.live).length, live = all.filter((r) => r.live).length;
+  $("calvmeta").innerHTML = `<b style="color:var(--orange)">${live}</b> minting now · <b style="color:var(--soft)">${upcoming}</b> upcoming · ${chains.length} chain${chains.length === 1 ? "" : "s"}${CALV.at ? ` · updated ${ago(CALV.at)}` : ""}${CALV.errors.length ? ` · ⚠ ${esc(CALV.errors.join(" · "))}` : ""}`;
+
+  const row = (r) => {
+    const when = r.live ? (r.at ? `<span class="when" data-at="${r.at}">${countdown(r.at)}</span>` : `<span class="when">LIVE</span>`) : `<span class="when" data-at="${r.at}">${countdown(r.at)}</span>`;
+    const tail = r.live ? (r.at ? "ends" : r.opened ? `opened ${ago(r.opened)}` : "open now") : new Date(r.at).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    return `<a class="row${r.live ? " soon" : ""}" href="${esc(r.url)}" target="_blank" rel="noopener" ${r.id ? `data-id="${esc(r.id)}"` : `data-slug="${esc(r.slug || "")}"`}>
+      ${when}<span class="ph ${r.live ? "live" : r.cat === "PUBLIC" ? "pub" : r.src === "magiceden" ? "sol" : "al"}">${esc(r.live ? "LIVE · " + r.cat : r.cat)}</span>
+      <span class="nm">${r.image ? `<img class="img" src="${esc(r.image)}" alt="" loading="lazy" onerror="this.remove()">` : ""}${esc(r.name)} <span class="meta2">${esc(r.meta)}</span></span>
+      <span class="meta2 tail">${esc(tail)}</span></a>`;
+  };
+  const block = (title, sub, list) => `<div class="src"><h4><span>${title}</span><i>${sub}</i></h4><div class="tl">${list.length ? list.map(row).join("") : `<div class="empty3">Nothing scheduled in this window.</div>`}</div></div>`;
+
+  $("calbody").innerHTML = chains.length ? chains.map(([c, list]) => {
+    const me = list.filter((r) => r.src === "magiceden"), os = list.filter((r) => r.src === "opensea");
+    return `<div class="chainh"><b>${esc(CHAIN_ABBR(c))}</b> ${esc(CHAIN_NAME(c))} <span>${list.length}</span></div>`
+      + (c === "solana" || me.length ? block("Magic Eden — upcoming mints", `${me.length} launchpad mint${me.length === 1 ? "" : "s"}`, me) : "")
+      + (c === "solana" ? `<div class="src"><h4><span>LaunchMyNFT — live mints</span><i>no calendar API — mints go live on deploy</i></h4><div class="tl"><a class="row" href="#" data-lm-open="1"><span class="when">LIVE</span><span class="ph al">EXPLORE</span><span class="nm">See what's minting right now on LaunchMyNFT <span class="meta2">embedded on the main page</span></span><span class="meta2 tail">open widget ↗</span></a></div></div>` : "")
+      + (c !== "solana" || os.length ? block("OpenSea — upcoming mints", `${os.length} drop${os.length === 1 ? "" : "s"} · featured, upcoming and live calendars`, os) : "");
+  }).join("") : `<div class="empty3">${CALV.errors.length ? "Couldn't load calendars." : "Nothing scheduled."}</div>`;
+}
+async function openCalendars() {
+  $("cal").classList.add("on"); $("cal").setAttribute("aria-hidden", "false"); document.body.style.overflow = "hidden";
+  startTicker();
+  if (!CALV.at) $("calbody").innerHTML = `<div class="empty3">Loading OpenSea and Magic Eden calendars…</div>`;
+  await loadCalendars(false); renderCalendars();
+}
+function closeCalendars() { $("cal").classList.remove("on"); $("cal").setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
+$("calbtn").addEventListener("click", openCalendars);
+$("calx").addEventListener("click", closeCalendars);
+$("calrefresh").addEventListener("click", async () => { $("calrefresh").textContent = "…"; await loadCalendars(true); renderCalendars(); $("calrefresh").textContent = "REFRESH"; });
+for (const b of $("cal").querySelectorAll(".pill[data-ch]")) b.addEventListener("click", () => {
+  for (const o of $("cal").querySelectorAll(".pill[data-ch]")) o.classList.toggle("on", o === b);
+  CALV.horizon = Number(b.dataset.ch); renderCalendars();
+});
+$("calbody").addEventListener("click", (e) => {
+  const lm = e.target.closest("[data-lm-open]");
+  if (lm) { e.preventDefault(); closeCalendars(); $("lmpanel").classList.remove("folded"); $("lmfold").innerHTML = "HIDE &#9650;"; lmLoad(); $("lmpanel").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  const r = e.target.closest(".row[data-id]");
+  if (r && ITEMS.has(r.dataset.id)) { e.preventDefault(); closeCalendars(); openSheet(r.dataset.id); }
 });
 
 /* ---------- upcoming mints, shown before any scan ---------- */

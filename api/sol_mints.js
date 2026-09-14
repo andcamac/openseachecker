@@ -16,23 +16,30 @@
 //                         QuickNode DAS add-on if enabled, else read from Metaplex accounts.
 //   SOLANA_RPC_URL      — alias for QUICKNODE_RPC_URL.
 // Without any of them the route returns {disabled:true}.
-import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { publicKey, unwrapOption, isSome } from "@metaplex-foundation/umi";
-import { base58 } from "@metaplex-foundation/umi/serializers";
-import * as CM from "@metaplex-foundation/mpl-candy-machine";
-import * as CORE from "@metaplex-foundation/mpl-core-candy-machine";
-import { safeFetchMetadataFromSeeds, mplTokenMetadata } from "@metaplex-foundation/mpl-token-metadata";
-import { fetchCollection, mplCore } from "@metaplex-foundation/mpl-core";
+// The Metaplex SDKs are loaded lazily so a packaging problem on the host surfaces as a JSON
+// error (visible with ?debug=1) instead of a blank 500 from a crashed function.
+let createUmi, publicKey, unwrapOption, isSome, base58, CM, CORE, safeFetchMetadataFromSeeds, mplTokenMetadata, fetchCollection, mplCore;
+let PROGRAMS = [];
+async function loadDeps() {
+  if (PROGRAMS.length) return;
+  ({ createUmi } = await import("@metaplex-foundation/umi-bundle-defaults"));
+  ({ publicKey, unwrapOption, isSome } = await import("@metaplex-foundation/umi"));
+  ({ base58 } = await import("@metaplex-foundation/umi/serializers"));
+  CM = await import("@metaplex-foundation/mpl-candy-machine");
+  CORE = await import("@metaplex-foundation/mpl-core-candy-machine");
+  ({ safeFetchMetadataFromSeeds, mplTokenMetadata } = await import("@metaplex-foundation/mpl-token-metadata"));
+  ({ fetchCollection, mplCore } = await import("@metaplex-foundation/mpl-core"));
+  PROGRAMS = [
+    { kind: "cm3", id: String(CM.MPL_CANDY_MACHINE_CORE_PROGRAM_ID), guard: String(CM.MPL_CANDY_GUARD_PROGRAM_ID), sdk: CM },
+    { kind: "core", id: String(CORE.MPL_CORE_CANDY_MACHINE_CORE_PROGRAM_ID), guard: String(CORE.MPL_CORE_CANDY_GUARD_PROGRAM_ID), sdk: CORE },
+  ];
+}
 
 const HELIUS = process.env.HELIUS_API_KEY || "";
 const RPC_URL = process.env.QUICKNODE_RPC_URL || process.env.SOLANA_RPC_URL || (HELIUS ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS}` : "");
 const PROVIDER = HELIUS ? "helius" : RPC_URL ? (/quiknode|quicknode/i.test(RPC_URL) ? "quicknode" : "rpc") : "none";
 const TXAPI = (addr, before) => `https://api.helius.xyz/v0/addresses/${addr}/transactions?api-key=${HELIUS}&limit=100${before ? `&before=${before}` : ""}`;
 
-const PROGRAMS = [
-  { kind: "cm3", id: String(CM.MPL_CANDY_MACHINE_CORE_PROGRAM_ID), guard: String(CM.MPL_CANDY_GUARD_PROGRAM_ID), sdk: CM },
-  { kind: "core", id: String(CORE.MPL_CORE_CANDY_MACHINE_CORE_PROGRAM_ID), guard: String(CORE.MPL_CORE_CANDY_GUARD_PROGRAM_ID), sdk: CORE },
-];
 // Anchor discriminators: sha256("global:<name>")[0..8]
 const DISC = { afaf6d1f0d989bed: "init", "4399af27da102620": "init", "3339e12fb69289a6": "mint", "78791792ad6ec7cd": "mint", "9162c076b8937668": "mint" };
 const MAX_MACHINES = 40;
@@ -187,6 +194,7 @@ export default async function handler(req, res) {
   const debug = req.query.debug === "1";
   const now = Date.now();
   try {
+    try { await loadDeps(); } catch (e) { throw new Error(`Solana SDK failed to load on this host: ${e.message}${e.stack ? " | " + String(e.stack).split("\n").slice(0, 3).join(" ") : ""}`); }
     const data = await cached(`solmints:${pages}`, 90_000, async () => {
       const scans = await Promise.all(PROGRAMS.map((p) => scanProgram(p, pages)));
       const entries = scans.flat().sort((a, b) => (b.inits - a.inits) || (b.mints - a.mints) || b.lastAt - a.lastAt).slice(0, MAX_MACHINES);

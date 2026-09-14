@@ -172,7 +172,7 @@ async function decode(entry, umis) {
 async function assetsDas(mints) {
   const r = await rpc("getAssetBatch", { ids: mints });
   const out = {};
-  for (const a of r || []) if (a) out[a.id] = { name: a.content?.metadata?.name || "", image: a.content?.links?.image || a.content?.files?.[0]?.cdn_uri || a.content?.files?.[0]?.uri || null, description: a.content?.metadata?.description || "", uri: a.content?.json_uri || null };
+  for (const a of r || []) if (a) out[a.id] = { name: a.content?.metadata?.name || "", image: a.content?.links?.image || a.content?.files?.[0]?.cdn_uri || a.content?.files?.[0]?.uri || null, description: a.content?.metadata?.description || "", uri: a.content?.json_uri || null, website: a.content?.links?.external_url || null };
   return out;
 }
 async function assetsOnchain(items, umis) {
@@ -183,7 +183,7 @@ async function assetsOnchain(items, umis) {
     else { const m = await safeFetchMetadataFromSeeds(umis.cm3, { mint: publicKey(collectionMint) }); if (m) { name = m.name; uri = m.uri; } }
     let json = {};
     if (uri) { try { json = await getJson(uri.replace(/^ipfs:\/\//, "https://ipfs.io/ipfs/")); } catch {} }
-    out[collectionMint] = { name: (name || json.name || "").replace(/\0+$/, ""), image: json.image || null, description: json.description || "", uri };
+    out[collectionMint] = { name: (name || json.name || "").replace(/\0+$/, ""), image: json.image || null, description: json.description || "", uri, website: json.external_url || null, twitter: json.twitter || json.properties?.twitter || null, discord: json.discord || json.properties?.discord || null };
   });
   return out;
 }
@@ -213,6 +213,7 @@ export default async function handler(req, res) {
           ...d,
           name: m.name || d.symbol || `Candy Machine ${d.candyMachine.slice(0, 4)}…`,
           image: m.image || null, description: m.description || "",
+          links: { website: m.website || null, twitter: m.twitter || null, discord: m.discord || null },
           status, phase: nowPhase || nextPhase || d.phases[0] || null, nextStart: nextPhase?.startAt || null,
           url: `https://solscan.io/account/${d.candyMachine}`,
           collectionUrl: `https://magiceden.io/item-details/${d.collectionMint}`,

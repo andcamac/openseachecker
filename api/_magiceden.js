@@ -105,6 +105,7 @@ export async function collectionInfo(symbol) {
       twitter: body.twitter || null,
       discord: body.discord || null,
       website: body.website || null,
+      links: { website: body.website || null, twitter: body.twitter || null, discord: body.discord || null },
       badged: body.isBadged === true,
       hasCNFTs: body.hasCNFTs === true,
     };

@@ -63,14 +63,13 @@ export default async function handler(req, res) {
     // Secondary-market floor for launched collections — tells you if the mint "worked".
     // Also pick up the categories ME files the collection under, so the UI can group by them.
     const launched = kept.filter((d) => d.status === "live" || d.status === "past").slice(0, 10);
+    const withInfo = [...kept.filter((d) => d.status === "upcoming").slice(0, 10), ...launched];
     const [stats, infos] = await Promise.all([
       mapLimit(launched, 2, (d) => collectionStats(d.symbol)),
-      mapLimit(launched, 2, (d) => collectionInfo(d.symbol)),
+      mapLimit(withInfo, 2, (d) => collectionInfo(d.symbol)),
     ]);
-    launched.forEach((d, i) => {
-      if (stats[i]) { d.floor = stats[i].floor; d.listed = stats[i].listed; d.volume7d = stats[i].volume7d; }
-      if (infos[i]) { d.categories = infos[i].categories; d.badged = infos[i].badged; }
-    });
+    launched.forEach((d, i) => { if (stats[i]) { d.floor = stats[i].floor; d.listed = stats[i].listed; d.volume7d = stats[i].volume7d; } });
+    withInfo.forEach((d, i) => { if (infos[i]) { d.categories = infos[i].categories; d.badged = infos[i].badged; d.links = infos[i].links; } });
 
     res.setHeader("cache-control", "s-maxage=120, stale-while-revalidate=600");
     res.status(200).json({

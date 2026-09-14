@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     ]);
     items.forEach((c, i) => {
       if (stats[i]) { c.floor = stats[i].floor ?? c.floor; c.listed = stats[i].listed; c.avg24h = stats[i].avg24h; c.volume7d = stats[i].volume7d; }
-      if (infos[i]) { c.categories = infos[i].categories; c.badged = infos[i].badged; c.twitter = infos[i].twitter; if (!c.image) c.image = infos[i].image; }
+      if (infos[i]) { c.categories = infos[i].categories; c.badged = infos[i].badged; c.twitter = infos[i].twitter; c.links = infos[i].links; if (!c.image) c.image = infos[i].image; }
     });
 
     res.setHeader("cache-control", "s-maxage=300, stale-while-revalidate=900");

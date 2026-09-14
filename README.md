@@ -117,7 +117,9 @@ marked as yours — anyone can mint those.
 
 Every drop / collection is a circle. The ring colour is the status, the ring fill is mint
 progress (OpenSea drops), share of your portfolio (Solana holdings) or rank (trending).
-**GROUP BY** switches between status, category (phase type for OpenSea: GTD / FCFS / WL /
+Under every circle a row of small link bubbles gives the project's website, X, Discord (and Instagram /
+Telegram when OpenSea lists them) plus its marketplace page — pulled from OpenSea collection info,
+Magic Eden collection info, or the on-chain metadata JSON for candy machines. **GROUP BY** switches between status, category (phase type for OpenSea: GTD / FCFS / WL /
 PUBLIC; Magic Eden's own categories for Solana) and chain. The layout is responsive — on
 phones the detail sheet slides up from the bottom, on desktop it docks on the right.
 

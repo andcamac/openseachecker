@@ -36,3 +36,23 @@ export async function osFetch(key, path, opts = {}) {
 export function slugOf(d) {
   return pick(d, "collectionSlug", "collection_slug", "slug") || pick(d.collection || {}, "slug") || pick(d.collection || {}, "collection");
 }
+
+// Socials for a collection (GET /collections/{slug}). Cached per warm function — they rarely change.
+const LINKS = new Map();
+export async function collectionLinks(key, slug) {
+  const hit = LINKS.get(slug);
+  if (hit && hit.exp > Date.now()) return hit.val;
+  let val = null;
+  try {
+    const { ok, body } = await osFetch(key, `/collections/${slug}`);
+    if (ok) val = {
+      website: body.project_url || null,
+      twitter: body.twitter_username ? `https://x.com/${body.twitter_username}` : null,
+      discord: body.discord_url || null,
+      instagram: body.instagram_username ? `https://instagram.com/${body.instagram_username}` : null,
+      telegram: body.telegram_url || null,
+    };
+  } catch {}
+  LINKS.set(slug, { val, exp: Date.now() + 6 * 3600_000 });
+  return val;
+}

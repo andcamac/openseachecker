@@ -150,6 +150,11 @@ select{appearance:none;-webkit-appearance:none;padding-right:28px;background-ima
 .bub .sub{font-size:10px;color:var(--muted);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .bub .sub.live{color:var(--orange);font-weight:700}
 .bub .sub.sol{color:var(--orange)}
+.bub .lks{display:flex;gap:5px;justify-content:center;margin-top:6px;flex-wrap:wrap}
+.bub .lk{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--card);border:1px solid var(--chip);color:var(--muted);font-size:9px;font-weight:700;letter-spacing:.04em;text-decoration:none;transition:transform .12s,color .12s,border-color .12s}
+.bub .lk:hover{transform:scale(1.15);color:var(--text);border-color:var(--soft)}
+.bub .lk.mkt{color:var(--orange);border-color:#4a2a12}
+.bub .lk svg{width:12px;height:12px;fill:currentColor}
 .bub.you{--rc:var(--orange)}
 .bub.pub{--rc:var(--soft)}
 .bub.solr{--rc:var(--orange)}
@@ -621,16 +626,47 @@ function renderTabs() {
   $("tabs").innerHTML = TABS[MODE].map(([f, l, c]) => `<button class="tab${c ? " " + c : ""}${FILTER === f ? " on" : ""}" data-f="${f}" type="button">${l} <b>${count(f)}</b></button>`).join("");
 }
 
+/* ---------- mini link bubbles: website, X, Discord, marketplace ---------- */
+const ICONS = {
+  web: `<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 9h-2.95a15.6 15.6 0 0 0-1.4-5.4A8 8 0 0 1 18.9 11zM12 4c.9 1.3 1.8 3.5 2 7h-4c.2-3.5 1.1-5.7 2-7zM4.3 13h2.95c.1 1.9.6 3.7 1.4 5.4A8 8 0 0 1 4.3 13zm2.95-2H4.3a8 8 0 0 1 4.35-5.4c-.8 1.7-1.3 3.5-1.4 5.4zM12 20c-.9-1.3-1.8-3.5-2-7h4c-.2 3.5-1.1 5.7-2 7zm2.55-1.6c.8-1.7 1.3-3.5 1.4-5.4h2.95a8 8 0 0 1-4.35 5.4z"/></svg>`,
+  x: `<svg viewBox="0 0 24 24"><path d="M17.5 3h3l-7 8 8.2 10h-6.4l-5-6.5L4.6 21h-3l7.5-8.6L1.3 3h6.5l4.5 6z"/></svg>`,
+  dc: `<svg viewBox="0 0 24 24"><path d="M19.5 5.3A17 17 0 0 0 15.3 4l-.5 1a15.6 15.6 0 0 0-5.6 0L8.7 4a17 17 0 0 0-4.2 1.3C1.8 9.3 1.1 13.2 1.4 17a17 17 0 0 0 5.2 2.6l1.1-1.8c-.6-.2-1.2-.5-1.7-.8l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.3-1.1.6-1.7.8l1.1 1.8a17 17 0 0 0 5.2-2.6c.4-4.4-.7-8.3-3.1-11.7zM8.7 14.7c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg>`,
+};
+function itemLinks(it) {
+  const L = it.src?.links || {};
+  const out = [];
+  const web = L.website || (it.kind === "trending" || it.kind === "holding" ? it.src?.website : null);
+  if (web && /^https?:\/\//i.test(web)) out.push({ k: "web", url: web, title: "Website" });
+  const tw = L.twitter || it.src?.twitter;
+  if (tw) out.push({ k: "x", url: /^https?:/i.test(tw) ? tw : `https://x.com/${String(tw).replace(/^@/, "")}`, title: "X / Twitter" });
+  const dc = L.discord || it.src?.discord;
+  if (dc) out.push({ k: "dc", url: /^https?:/i.test(dc) ? dc : `https://discord.gg/${dc}`, title: "Discord" });
+  if (L.instagram) out.push({ k: "ig", url: L.instagram, title: "Instagram", text: "IG" });
+  if (L.telegram) out.push({ k: "tg", url: L.telegram, title: "Telegram", text: "TG" });
+  // marketplace / mint page
+  if (it.kind === "osdrop") out.push({ k: "mkt", url: it.url, title: "OpenSea", text: "OS" });
+  else if (it.kind === "launch") out.push({ k: "mkt", url: it.url, title: "Magic Eden Launchpad", text: "ME" });
+  else if (it.kind === "cmmint") out.push({ k: "mkt", url: it.src.collectionUrl || it.url, title: "Collection on Magic Eden", text: "ME" });
+  else out.push({ k: "mkt", url: it.url, title: "Magic Eden", text: "ME" });
+  return out.filter((l) => l.url && l.url !== "#");
+}
+function linkBubbles(it) {
+  const ls = itemLinks(it);
+  if (!ls.length) return "";
+  return `<span class="lks">${ls.map((l) => `<a class="lk ${l.k}" href="${esc(l.url)}" target="_blank" rel="noopener" title="${esc(l.title)}" aria-label="${esc(l.title)}">${ICONS[l.k] || esc(l.text || l.k.toUpperCase())}</a>`).join("")}</span>`;
+}
+
 /* ---------- rendering ---------- */
 function bubble(it) {
   const img = it.image ? `<img src="${esc(it.image)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph2',textContent:'◈'}))">` : `<div class="ph2">◈</div>`;
   const sub = it.sub.at ? `<span class="sub ${it.sub.cls}" data-at="${it.sub.at}" data-pre="${esc(it.sub.pre || "")}">${esc(it.sub.pre ? it.sub.pre.replace(/ (ends|opens) in$/, "") + " · " : "")}${esc(it.sub.t)}</span>` : `<span class="sub ${it.sub.cls}">${esc(it.sub.t)}</span>`;
-  return `<button class="bub ${it.ring}${it.dim ? " dim" : ""}${SELECTED === it.id ? " on" : ""}" data-id="${esc(it.id)}" type="button" style="--p:${it.pct.toFixed(1)}%">
+  return `<div class="bub ${it.ring}${it.dim ? " dim" : ""}${SELECTED === it.id ? " on" : ""}" data-id="${esc(it.id)}" role="button" tabindex="0" style="--p:${it.pct.toFixed(1)}%">
     <span class="ring">${img}</span>
     <span class="chn${it.chain === "solana" ? " sol" : ""}">${esc(CHAIN_ABBR(it.chain))}</span>
     ${it.tag.t ? `<span class="tag ${it.tag.c}">${esc(it.tag.t)}</span>` : ""}
     <span class="nm">${esc(it.name)}</span>${sub}
-  </button>`;
+    ${linkBubbles(it)}
+  </div>`;
 }
 
 const FOLDED = new Set();
@@ -774,7 +810,9 @@ function sheetHtml(it) {
   const now = Date.now();
   const img = it.image ? `<img src="${esc(it.image)}" alt="">` : `<div class="ph2">◈</div>`;
   const head = (badge, meta) => `<div class="sh"><div class="ring" style="--rc:var(--${it.ring === "you" ? "orange" : it.ring === "pub" ? "soft" : it.ring === "solr" ? "sol" : "chip"});--p:${it.pct.toFixed(1)}%">${img}</div><div><div class="t">${esc(it.name)}</div><div class="m">${meta}</div>${badge}</div></div>`;
-  const kv = (pairs) => `<div class="kv">${pairs.filter(Boolean).map(([l, v, c]) => `<div><div class="l">${l}</div><div class="v ${c || ""}">${v}</div></div>`).join("")}</div>`;
+  const socials = itemLinks(it).filter((l) => l.k !== "mkt");
+  const socialRow = socials.length ? `<div class="cats" style="margin-top:10px">${socials.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener"><span style="color:var(--soft)">${esc(l.title.toUpperCase())} ↗</span></a>`).join("")}</div>` : "";
+  const kv = (pairs) => socialRow + `<div class="kv">${pairs.filter(Boolean).map(([l, v, c]) => `<div><div class="l">${l}</div><div class="v ${c || ""}">${v}</div></div>`).join("")}</div>`;
 
   if (it.kind === "osdrop") {
     const d = it.src;
@@ -1088,7 +1126,12 @@ $("calmine").addEventListener("click", () => { CAL_MINE = !CAL_MINE; $("calmine"
 $("out").addEventListener("click", (e) => {
   const gh = e.target.closest(".gh");
   if (gh) { const key = gh.parentElement.dataset.g; FOLDED.has(key) ? FOLDED.delete(key) : FOLDED.add(key); render(); return; }
+  if (e.target.closest("a.lk")) return;          // mini link bubbles navigate on their own
   const b = e.target.closest(".bub"); if (b) openSheet(b.dataset.id);
+});
+$("out").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const b = e.target.closest(".bub"); if (b && e.target === b) { e.preventDefault(); openSheet(b.dataset.id); }
 });
 $("chips").addEventListener("click", (e) => { const c = e.target.closest(".chip"); if (c) openSheet(c.dataset.id); });
 $("timeline").addEventListener("click", (e) => { const r = e.target.closest(".row[data-id]"); if (r) { e.preventDefault(); openSheet(r.dataset.id); } });

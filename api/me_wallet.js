@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         c.floor = stats[i].floor; c.listedCount = stats[i].listed; c.volume7d = stats[i].volume7d;
         if (c.floor != null) { c.value = c.floor * c.count; valueSol += c.value; pricedCount++; }
       }
-      if (infos[i]) { c.categories = infos[i].categories; c.badged = infos[i].badged; if (!c.image) c.image = infos[i].image; if (infos[i].name) c.name = infos[i].name; }
+      if (infos[i]) { c.categories = infos[i].categories; c.badged = infos[i].badged; c.links = infos[i].links; if (!c.image) c.image = infos[i].image; if (infos[i].name) c.name = infos[i].name; }
       c.url = meCollectionUrl(c.symbol);
     });
 

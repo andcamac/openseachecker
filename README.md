@@ -93,6 +93,32 @@ creator deploys them), so the app embeds its live explore page — LATEST / HOT 
 panel. The frame only loads while the panel is open. It's also linked from the Solana section of
 CALENDARS.
 
+## Themes, layout and sign-in
+
+**Themes.** The **◐ THEME** button switches the whole palette: **Ember** (the original), **Midnight**,
+**Matrix**, **Grape** and **Paper** (light). Every colour in the app is a CSS variable, so a theme is
+one block of tokens — add your own by copying a `[data-theme="…"]` block in the `<style>` head. The
+choice is remembered per device.
+
+**Arrange.** **⠿ ARRANGE** turns on drag mode: drag circles into whatever order you want, inside any
+group, on desktop or touch. The order is saved on the device and applied on every later scan;
+⌘K → *Reset layout* puts it back to the default sort.
+
+**Sign in (optional).** With `PRIVY_APP_ID` (and optionally `PRIVY_CLIENT_ID`) set in Vercel, a
+**SIGN IN** button appears offering:
+
+- **Continue with Google** — Privy OAuth; returns to the app, links (and can create) an embedded
+  wallet, and scans it.
+- **Connect EVM wallet** — sign-in-with-Ethereum through the browser wallet.
+- **Use Phantom (read-only)** — reads the public key with no signature at all, shown when Phantom
+  is present.
+
+Signed in, the account menu lists every linked wallet; tap one to scan it or **Scan all wallets**.
+The app only ever reads public addresses — it never asks for a key and never builds or sends a
+transaction. Without the env var the button stays hidden and pasting addresses works exactly as
+before. Privy's vanilla SDK (`@privy-io/js-sdk-core`) is loaded from a CDN only when someone clicks
+sign in, so the page stays light.
+
 ## Telegram alerts
 
 The radar works with the tab closed. Optional — the 🔔 buttons only appear once it's configured.
@@ -114,7 +140,13 @@ The radar works with the tab closed. Optional — the 🔔 buttons only appear o
    [cron-job.org](https://cron-job.org), pointed at
    `https://<your-app>/api/alerts_tick?secret=<ALERTS_SECRET>`.
 
-   > **Do not put a sub-daily `crons` block in `vercel.json` on a Hobby plan.** Vercel Hobby allows
+   > **Two `vercel.json` gotchas, both of which break the deployment silently:**
+   >
+   > 1. Patterns in `functions` must not overlap. Each function is claimed by the first matching
+   >    pattern, so a general `api/*.js` plus a specific `api/alerts_tick.js` makes the specific one
+   >    match nothing and the build fails with *"doesn't match any Serverless Functions"*. One
+   >    pattern covering everything is the safe form.
+   > 2. **Do not put a sub-daily `crons` block in `vercel.json` on a Hobby plan.** Vercel Hobby allows
    > cron jobs only once per day, and a more frequent expression makes the **deployment itself fail**
    > — the site keeps serving the previous build with no obvious error on the page. That is why
    > `vercel.json` here declares no crons. On a Pro plan you can add:

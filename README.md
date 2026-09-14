@@ -93,6 +93,25 @@ creator deploys them), so the app embeds its live explore page — LATEST / HOT 
 panel. The frame only loads while the panel is open. It's also linked from the Solana section of
 CALENDARS.
 
+## Live feed, table view, prices, trust signals
+
+- **LIVE ticker** under the header: new on-chain deployments, newly listed mints and phase
+  openings stream in as chips (tap one to open its sheet). Solana sources auto-refresh — on-chain
+  every 60 s, Magic Eden launchpad every 2.5 min (both edge-cached, so it costs nothing upstream);
+  "updated Ns ago" shows freshness and turns orange when stale. When a countdown hits zero the
+  circle pulses and, with **🔔 SOUND** on, the page beeps.
+- **VIEW: CIRCLES / TABLE** — same items as a dense sortable table (click a column header):
+  collection, source · chain, status, phase, price, minted with progress bar, opens/ends, links.
+- **USD everywhere**: `/api/prices` (CoinGecko, cached 60 s) puts a ≈ $ figure next to every
+  SOL / ETH price; launched Magic Eden collections show **floor vs mint** as a % badge.
+- **Trust signals**: ✔ = verified on Magic Eden; **⚠ UNVERIFIED** greys out on-chain candy
+  machines with no website, no socials and no image (the classic rug shape); **?** flags missing
+  socials or hidden metadata. Signal dots on each circle: light = OpenSea, orange = Magic Eden,
+  grey = on-chain.
+- **⌘K / Ctrl+K / `/`** opens a command palette: search any loaded collection, paste an address or
+  URL to scan/check, switch view, grouping, filters, open Calendars.
+- **DENSE** shrinks circles and hides link rows for a tighter desktop grid.
+
 ## Calendars
 
 The **CALENDARS** button opens a full view built from both APIs with no wallet needed:

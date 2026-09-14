@@ -390,7 +390,8 @@ table.tv .dot.os{background:var(--soft)}table.tv .dot.me{background:var(--orange
 body.gated{overflow:hidden}
 
 /* ---------- theme picker ---------- */
-.pop{position:absolute;z-index:65;background:var(--panel);border:1px solid var(--chip);border-radius:16px;padding:8px;box-shadow:0 18px 60px rgba(0,0,0,.5);display:none;min-width:210px}
+.pop{position:absolute;z-index:65;background:var(--panel);border:1px solid var(--chip);border-radius:16px;padding:8px;box-shadow:0 18px 60px rgba(0,0,0,.5);display:none;min-width:210px;max-width:min(360px,calc(100vw - 24px))}
+.pop code{display:block;background:var(--card);border-radius:8px;padding:6px 8px;overflow-wrap:anywhere}
 .pop.on{display:block}
 .pop .row2{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;font-size:11px;color:var(--soft)}
 .pop .row2:hover{background:var(--card);color:var(--text)}
@@ -683,7 +684,7 @@ let ADDRESS = "";
 let ADDRESSES = [];            // every wallet in the current scan (ADDRESS is the first)
 const parseAddrs = (raw) => [...new Set(String(raw || "").split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean))].slice(0, 10);
 let SIGF = false;              // HOT+ ONLY filter
-const TGCFG = { enabled: false, bot: null };
+const TGCFG = { enabled: false, bot: null, why: "" };
 const tgLink = (id) => TGCFG.enabled ? `https://t.me/${TGCFG.bot}?start=${btoa(unescape(encodeURIComponent(id))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}` : null;
 let MODE = "evm";              // evm | sol — what the last scan was
 let ROWS = new Map();          // slug -> /api/check result (OpenSea)
@@ -1020,21 +1021,73 @@ function render() {
   if (SELECTED && ITEMS.has(SELECTED)) $("sheetbody").innerHTML = sheetHtml(ITEMS.get(SELECTED));
 }
 
-/* ---------- live feed: new arrivals, openings, freshness ---------- */
+/* ---------- live feed: new arrivals, openings, mint progress, freshness ---------- */
 let FIRST_RENDER = true, QUIET_UNTIL = 0;   // a scan floods in items that aren't "new" — stay quiet while it runs
+const PREV = new Map();                     // id -> {status, minted} from the last refresh, to spot real changes
+const mintedOf = (it) => it.kind === "cmmint" ? Number(it.src.itemsRedeemed) || 0 : it.kind === "osdrop" ? Number(it.src.minted) || 0 : 0;
+
 function trackArrivals() {
   const now = Date.now();
   for (const it of ITEMS.values()) {
-    if (SEEN_IDS.has(it.id)) continue;
+    const first = !SEEN_IDS.has(it.id);
     SEEN_IDS.add(it.id);
-    if (FIRST_RENDER || now < QUIET_UNTIL) continue;
-    if (["live", "upcoming", "eligible", "public"].includes(it.status)) pushEvent({ at: now, kind: "new", id: it.id, name: it.name, image: it.image, text: it.status === "live" ? "minting now" : it.status === "upcoming" ? "scheduled" : "eligible" });
+    const prev = PREV.get(it.id);
+    const minted = mintedOf(it);
+    PREV.set(it.id, { status: it.status, minted });
+
+    if (first) {
+      // a genuinely new listing arriving mid-session
+      if (!FIRST_RENDER && now >= QUIET_UNTIL && ["live", "upcoming", "eligible", "public"].includes(it.status))
+        pushEvent({ at: now, kind: "new", id: it.id, name: it.name, image: it.image, text: it.status === "live" ? "minting now" : it.status === "upcoming" ? "scheduled" : "eligible" });
+      continue;
+    }
+    if (!prev) continue;
+    // status transitions — the most interesting thing that can happen to a mint
+    if (prev.status !== it.status) {
+      if (it.status === "live") pushEvent({ at: now, kind: "open", id: it.id, name: it.name, image: it.image, text: "minting now" });
+      else if (it.status === "eligible") pushEvent({ at: now, kind: "open", id: it.id, name: it.name, image: it.image, text: "you're eligible" });
+      else if (it.status === "ended" || it.status === "past") pushEvent({ at: now, kind: "end", id: it.id, name: it.name, image: it.image, text: "mint closed" });
+      else if (it.status === "upcoming") pushEvent({ at: now, kind: "new", id: it.id, name: it.name, image: it.image, text: "phase scheduled" });
+    }
+    // mint progress — this is what actually ticks between polls on a busy launch
+    if (minted > prev.minted) {
+      const total = it.kind === "cmmint" ? Number(it.src.itemsAvailable) || 0 : Number(it.src.max) || 0;
+      pushEvent({ at: now, kind: "mint", id: it.id, name: it.name, image: it.image, text: `+${minted - prev.minted} minted${total ? ` · ${minted}/${total}` : ""}` });
+    }
   }
-  // on-chain deployments carry their own timestamp
+  // on-chain deployments carry their own timestamp — real history, good for seeding the strip
   for (const it of ITEMS.values()) if (it.fresh && !FEED.some((e) => e.id === it.id && e.kind === "deploy")) pushEvent({ at: it.fresh, kind: "deploy", id: it.id, name: it.name, image: it.image, text: "candy machine deployed" });
+  if (FIRST_RENDER) seedFeed();
   FIRST_RENDER = false;
 }
-function pushEvent(ev) { FEED.unshift(ev); FEED.sort((a, b) => b.at - a.at); if (FEED.length > 40) FEED.length = 40; }
+// The strip should never open empty: fill it with what is actually happening right now,
+// stamped with each mint's own start time so the ages are real, not invented.
+function seedFeed() {
+  const now = Date.now();
+  const live = [...ITEMS.values()].filter((it) => it.status === "live" || it.status === "eligible");
+  for (const it of live) {
+    if (FEED.some((e) => e.id === it.id)) continue;
+    const d = it.src;
+    const startedAt = d.launchAt || d.phase?.startAt || (d.openStages || []).map((s) => s.startTime).filter(Boolean).sort((a, b) => b - a)[0] || null;
+    const at = startedAt && startedAt <= now && now - startedAt < 24 * 3600000 ? startedAt : now - 60000;
+    const total = it.kind === "cmmint" ? Number(it.src.itemsAvailable) || 0 : Number(it.src.max) || 0;
+    const minted = mintedOf(it);
+    pushEvent({ at, kind: "live", id: it.id, name: it.name, image: it.image, text: minted && total ? `${minted}/${total} minted` : it.status === "eligible" ? "you're eligible" : "minting now" });
+  }
+  const soon = [...ITEMS.values()].filter((it) => it.status === "upcoming").sort((a, b) => (a.at || 0) - (b.at || 0)).slice(0, 5);
+  for (const it of soon) if (!FEED.some((e) => e.id === it.id)) pushEvent({ at: now - 120000, kind: "soon", id: it.id, name: it.name, image: it.image, text: "opens soon" });
+}
+function pushEvent(ev) {
+  // a fresh event supersedes the seeded snapshot for the same mint, so the strip never shows two
+  // rows for one collection with a stale count on the older one
+  if (ev.kind !== "live" && ev.kind !== "soon") {
+    for (let i = FEED.length - 1; i >= 0; i--) if (FEED[i].id === ev.id && (FEED[i].kind === "live" || FEED[i].kind === "soon")) FEED.splice(i, 1);
+  }
+  // collapse repeated progress on the same mint into one moving row
+  if (ev.kind === "mint") { for (let i = FEED.length - 1; i >= 0; i--) if (FEED[i].id === ev.id && FEED[i].kind === "mint") FEED.splice(i, 1); }
+  FEED.unshift(ev); FEED.sort((a, b) => b.at - a.at); if (FEED.length > 40) FEED.length = 40;
+  FEED_DIRTY = true;
+}
 function renderOnchain(ocRows) {
   if (!ocRows.length) { $("ocpanel").hidden = true; return; }
   $("ocpanel").hidden = false;
@@ -1042,16 +1095,40 @@ function renderOnchain(ocRows) {
   $("ocmeta").innerHTML = `<b>${live}</b> minting now · <b>${up}</b> scheduled${fresh ? ` · <b>${fresh}</b> just deployed` : ""} — read straight from Candy Machine, every launchpad and none`;
   $("ocbody").innerHTML = VIEW === "table" ? renderTable(ocRows) : `<div class="bubbles">${ocRows.map(bubble).join("")}</div>`;
 }
+const FEED_BADGE = { open: ["OPENED", "hot"], mint: ["MINTED", "hot"], deploy: ["NEW", "new"], new: ["NEW", "new"], soon: ["SOON", ""], end: ["CLOSED", ""], live: ["LIVE", ""] };
+let FEED_DIRTY = true, FEED_SIG = "";
 function renderFeed() {
   const has = ITEMS.size > 0;
   $("ticker").hidden = !has;
   if (!has) return;
   const now = Date.now();
   const evs = FEED.filter((e) => now - e.at < 24 * 3600000).slice(0, 20);
-  $("feed").innerHTML = evs.length ? evs.map((e) => `<span class="ev" data-id="${esc(e.id)}">${e.image ? `<img src="${esc(e.image)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ph2'}))">` : `<span class="ph2"></span>`}<b class="${e.kind === "open" ? "hot" : e.kind === "new" || e.kind === "deploy" ? "new" : ""}">${e.kind === "open" ? "OPENED" : e.kind === "deploy" ? "NEW" : e.kind === "new" ? "NEW" : "LIVE"}</b>${esc(e.name)} <small>· ${esc(e.text)} · ${esc(ago(e.at))}</small></span>`).join("")
-    : `<span class="ev"><small>watching — new mints, deployments and phase openings show up here</small></span>`;
+  // ages tick every second, so re-paint only when the visible text actually changes
+  const sig = evs.map((e) => e.id + e.kind + e.text + ago(e.at)).join("|");
+  if (!FEED_DIRTY && sig === FEED_SIG) return;
+  FEED_SIG = sig; FEED_DIRTY = false;
+  const el = $("feed"), left = el.scrollLeft;
+  el.innerHTML = evs.length ? evs.map((e) => {
+    const [label, cls] = FEED_BADGE[e.kind] || ["LIVE", ""];
+    return `<span class="ev" data-id="${esc(e.id)}">${e.image ? `<img src="${esc(e.image)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ph2'}))">` : `<span class="ph2"></span>`}<b class="${cls}">${label}</b>${esc(e.name)} <small>· ${esc(e.text)} · ${esc(ago(e.at))}</small></span>`;
+  }).join("") : `<span class="ev"><small>watching — new mints, deployments and phase openings show up here</small></span>`;
+  el.scrollLeft = Math.min(left, Math.max(0, el.scrollWidth - el.clientWidth));
   renderFresh();
 }
+// gentle auto-scroll so the strip reads as live; pauses on hover/touch and while the user scrolls it
+let FEED_HOLD = 0;
+(() => {
+  const el = $("feed");
+  const hold = () => { FEED_HOLD = Date.now() + 4000; };
+  el.addEventListener("pointerenter", hold); el.addEventListener("pointermove", hold);
+  el.addEventListener("wheel", hold, { passive: true }); el.addEventListener("touchstart", hold, { passive: true });
+  setInterval(() => {
+    if (document.hidden || Date.now() < FEED_HOLD) return;
+    const max = el.scrollWidth - el.clientWidth;
+    if (max < 8) return;
+    el.scrollLeft = el.scrollLeft >= max - 1 ? 0 : el.scrollLeft + 1;
+  }, 40);
+})();
 function renderFresh() {
   const t = Math.max(FRESH.chain, FRESH.me, FRESH.os);
   if (!t) { $("fresh").textContent = ""; return; }
@@ -1371,7 +1448,7 @@ function startTicker() {
   TICKER = setInterval(() => {
     const now = Date.now();
     for (const el of document.querySelectorAll(".when[data-at],.cdv[data-at],.cd2[data-at]")) el.textContent = countdown(Number(el.dataset.at));
-    if (now % 10000 < 1000) renderFresh();
+    renderFeed();   // cheap — repaints only when a visible label actually changed
     for (const el of document.querySelectorAll(".sub[data-at]")) {
       const at = Number(el.dataset.at);
       const pre = el.dataset.pre ? el.dataset.pre.replace(/ (ends|opens) in$/, "") + " · " : "";
@@ -1727,7 +1804,7 @@ async function loadPrices() {
 loadPrices(); setInterval(loadPrices, 5 * 60000);
 // Poll the fast-moving sources. Results are edge-cached (90 s / 2 min) so this costs nothing upstream.
 setInterval(() => { if (document.hidden) return; if (CHAIN_MINTS.at) loadChainMints(); }, 60000);
-setInterval(async () => { if (document.hidden || !ME.launchpad.length && MODE !== "sol") return; try { const r = await fetchJson("/api/me?route=launchpad"); ME.launchpad = r.drops; FRESH.me = Date.now(); render(); } catch {} }, 150000);
+setInterval(async () => { if (document.hidden || !ME.launchpad.length && MODE !== "sol") return; try { const r = await fetchJson("/api/me?route=launchpad"); ME.launchpad = r.drops; FRESH.me = Date.now(); render(); } catch {} }, 90000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && CHAIN_MINTS.at && Date.now() - CHAIN_MINTS.at > 60000) loadChainMints(); });
 
 /* ---------- view / dense / sound ---------- */
@@ -1744,7 +1821,7 @@ $("out").addEventListener("click", (e) => {
   const tr = e.target.closest("tr.row"); if (tr) openSheet(tr.dataset.id);
 });
 $("sigf").addEventListener("click", () => { SIGF = !SIGF; $("sigf").classList.toggle("on", SIGF); render(); });
-fetchJson("/api/config?what=alerts").then((c) => { TGCFG.enabled = !!c.enabled; TGCFG.bot = c.bot; if (TGCFG.enabled && ITEMS.size) render(); }).catch(() => {});
+fetchJson("/api/config?what=alerts").then((c) => { TGCFG.enabled = !!c.enabled; TGCFG.bot = c.bot; TGCFG.why = c.why || ""; if (TGCFG.enabled && ITEMS.size) render(); }).catch(() => {});
 $("dense").addEventListener("click", () => { const on = document.body.classList.toggle("dense"); $("dense").classList.toggle("on", on); try { localStorage.setItem("mintradar:dense", on ? "1" : ""); } catch {} });
 try { if (localStorage.getItem("mintradar:dense")) { document.body.classList.add("dense"); $("dense").classList.add("on"); } } catch {}
 $("sound").addEventListener("click", () => { SOUND = !SOUND; $("sound").classList.toggle("on", SOUND); $("sound").textContent = SOUND ? "🔔 SOUND" : "🔇 SOUND"; if (SOUND) beep(); });
@@ -1780,7 +1857,8 @@ function renderTgPop() {
   const cfg = TGCFG;
   const addr = ADDRESSES[0] || "";
   if (!cfg.enabled) {
-    p.innerHTML = `<div class="who">Telegram alerts are not switched on for this deployment.<small>The operator enables them by setting TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME, the Upstash Redis keys and ALERTS_SECRET in Vercel — see the README.</small></div>`;
+    p.innerHTML = `<div class="who">Telegram alerts are not switched on for this deployment.<small>${esc(TGCFG.why || "The bot token, the Upstash Redis keys or the bot username is missing.")}</small></div>
+      <hr><div class="note2">Turn it on in Vercel → Settings → Environment Variables: <b>TELEGRAM_BOT_TOKEN</b> and <b>TELEGRAM_BOT_USERNAME</b> (from @BotFather), <b>UPSTASH_REDIS_REST_URL</b> + <b>UPSTASH_REDIS_REST_TOKEN</b> (free Upstash database) and <b>ALERTS_SECRET</b> (any random string). Redeploy, then register the webhook once:<br><br><code style="word-break:break-all;font-size:9px">api.telegram.org/bot&lt;TOKEN&gt;/setWebhook?url=${esc(location.origin)}/api/tg&amp;secret_token=&lt;ALERTS_SECRET&gt;</code><br><br>Check <a href="/api/config?what=status" target="_blank" rel="noopener" style="color:var(--orange)">/api/config?what=status</a> to see which of these the server can actually see.</div>`;
     return;
   }
   p.innerHTML = `<div class="who">Get pinged when a mint opens<small>10 minutes before a phase opens, the moment it opens, on new on-chain deployments, and when a wallet becomes eligible.</small></div>
@@ -1836,14 +1914,20 @@ async function refreshUser() {
 }
 function renderAuth() {
   const b = $("signin");
-  if (!AUTH.cfg?.enabled) { b.hidden = true; return; }
   b.hidden = false;
+  // Privy not configured: keep the button, but say so when it's tapped instead of vanishing silently.
+  if (!AUTH.cfg?.enabled) { b.textContent = "SIGN IN"; return; }
   if (AUTH.user) b.innerHTML = `<span class="acct"><span class="av">${esc((whoLabel(AUTH.user)[0] || "?").toUpperCase())}</span>${esc(short(AUTH.wallets[0]?.address) || whoLabel(AUTH.user).slice(0, 14))}</span>`;
   else b.textContent = AUTH.loading ? "…" : "SIGN IN";
   if ($("acctpop").classList.contains("on")) renderAcctPop();
 }
 function renderAcctPop() {
   const p = $("acctpop");
+  if (!AUTH.cfg?.enabled) {
+    p.innerHTML = `<div class="who">Sign-in isn't switched on for this deployment.<small>Google and wallet login both run through Privy, and Privy needs an app id.</small></div>
+      <hr><div class="note2">To turn it on: create an app at <b>dashboard.privy.io</b>, then in Vercel → Settings → Environment Variables add <b>PRIVY_APP_ID</b> (and <b>PRIVY_CLIENT_ID</b> from Settings → Clients), add <b>${esc(location.origin)}</b> to Privy's allowed origins and redirect URIs, and redeploy. Until then, paste addresses into the scan box — everything else works without an account.</div>`;
+    return;
+  }
   if (!AUTH.user) {
     p.innerHTML = `<div class="row2" data-auth="google"><span class="sw2"><i style="background:#ea4335"></i><i style="background:#4285f4"></i><i style="background:#34a853"></i></span><b>CONTINUE WITH GOOGLE</b></div>
       <div class="row2" data-auth="evm"><span class="sw2"><i style="background:var(--orange)"></i></span><b>CONNECT EVM WALLET</b></div>
@@ -1916,8 +2000,8 @@ $("acctpop").addEventListener("click", (e) => {
 });
 (async () => {
   try { AUTH.cfg = await fetchJson("/api/config?what=privy"); } catch { AUTH.cfg = { enabled: false }; }
+  renderAuth();                                  // the button shows either way; the popover explains if it's off
   if (!AUTH.cfg.enabled) return;
-  renderAuth();
   const q = new URLSearchParams(location.search);
   if (q.get("privy_oauth_code")) {                       // returning from Google
     $("status").textContent = "Finishing sign-in…";

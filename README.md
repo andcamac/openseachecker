@@ -278,6 +278,32 @@ That leaves 8 functions: `check, drops, holdings, sol_mints, tg, alerts_tick, me
 URLs (`/api/me_launchpad`, `/api/prices`, `/api/privy_config`, …) still resolve — `vercel.json`
 rewrites them to the dispatchers — so bookmarks and any external cron keep working.
 
+## Is it switched on? — `/api/config?what=status`
+
+Sign-in and Telegram alerts are both **off unless their environment variables are set in Vercel**, and
+a missing variable is otherwise invisible. Open `/api/config?what=status` on the deployment: it
+reports, as booleans only (never a value, never part of one), which variables the server can see and
+which feature each one gates.
+
+| Feature | Needs |
+|---|---|
+| EVM drops | `OPENSEA_API_KEY` |
+| On-chain Solana radar | `HELIUS_API_KEY` **or** `QUICKNODE_RPC_URL` |
+| Sign in (Google **and** wallet — both run through Privy) | `PRIVY_APP_ID`, optionally `PRIVY_CLIENT_ID` |
+| Telegram alerts | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
+| Alert scheduler | `ALERTS_SECRET` + an external 5-minute cron on `/api/alerts_tick?secret=…` |
+
+Two steps have no environment variable and are easy to miss:
+
+1. **Privy**: add the deployment's origin (e.g. `https://openseachecker.vercel.app`) to *both* Allowed
+   origins and Redirect URIs in the Privy dashboard, and enable Google as a login method. Without
+   this, Google login redirects out and bounces back rejected even with a valid app id.
+2. **Telegram**: register the webhook once, after deploying —
+   `https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<your-app>/api/tg&secret_token=<ALERTS_SECRET>`.
+   Until this runs, the bot receives nothing and `/start` does nothing.
+
+Env vars only take effect on the **next** deployment — setting one does not update a running build.
+
 ## Debugging
 
     /api/drops?debug=1

@@ -865,12 +865,13 @@ async function scanEvm(chains) {
   render();
   const n = [...ROWS.values()].filter((x) => x.status === "eligible").length;
   const finished = [...ROWS.values()].filter((x) => x.status === "ended");
-  $("status").textContent = `Checked ${drops.length} drops · ${n} mintable now · live phases re-check automatically`;
+  const lp = ME.launchpad.filter((x) => x.status !== "past").length;
+  $("status").textContent = `Checked ${drops.length} drops · ${n} mintable now${lp ? ` · ${lp} Solana launchpad mints` : ""} · live phases re-check automatically`;
   $("pbar").hidden = true;
   if (finished.length) {
     $("status").textContent += ` · checking ${finished.length} finished drops for mints you already hold…`;
     await loadHoldings(finished);
-    $("status").textContent = `Checked ${drops.length} drops · ${n} mintable now · ${finished.filter(isMinted).length} finished drops you hold · live phases re-check automatically`;
+    $("status").textContent = `Checked ${drops.length} drops · ${n} mintable now · ${finished.filter(isMinted).length} finished drops you hold${lp ? ` · ${lp} Solana launchpad mints` : ""} · live phases re-check automatically`;
   }
 }
 
@@ -904,7 +905,7 @@ $("scan").addEventListener("submit", async (e) => {
   $("go").disabled = true; $("pbar").hidden = false; $("pbar").firstElementChild.style.width = "0";
   try {
     if (sol) { setMode("sol"); ROWS = new Map(); RECHECK.clear(); await scanSol(ADDRESS); }
-    else { setMode("evm"); ME.launchpad = []; ME.trending = []; ME.wallet = null; ME.collections.clear(); await scanEvm(chains); }
+    else { setMode("evm"); ME.trending = []; ME.wallet = null; ME.collections.clear(); await scanEvm(chains); }
   } catch (err) { $("status").textContent = "Error: " + err.message; $("pbar").hidden = true; render(); }
   finally { $("go").disabled = false; }
 });
@@ -999,12 +1000,25 @@ document.addEventListener("click", async (e) => {
   }
 });
 
-// Deep link: ?address=…  or  ?sol=1
+/* ---------- upcoming mints, shown before any scan ---------- */
+async function loadUpcoming() {
+  $("status").textContent = "Loading upcoming Magic Eden launchpad mints…";
+  try {
+    const r = await fetchJson("/api/me_launchpad");
+    ME.launchpad = r.drops;
+    setMode("sol"); showUi(); startTicker(); render();
+    $("elig").innerHTML = `<b style="color:var(--orange)">${r.counts.live}</b> launchpad mint${r.counts.live === 1 ? "" : "s"} live · <b style="color:var(--soft)">${r.counts.upcoming}</b> upcoming on Magic Eden. Paste a 0x address to scan OpenSea drops, or a Solana address to see your NFTs and activity.`;
+    $("status").textContent = `Magic Eden launchpad · ${r.counts.live} minting now · ${r.counts.upcoming} upcoming · ${r.counts.past} recent. Scan an address for more.`;
+  } catch (err) { $("status").textContent = "Couldn't load the Magic Eden launchpad: " + err.message; }
+}
+
+// Deep link: ?address=…  or  ?sol=1 — otherwise show upcoming mints right away.
 try {
   const q = new URLSearchParams(location.search);
   if (q.get("address")) { $("addr").value = q.get("address"); $("scan").requestSubmit(); }
   else if (q.get("sol")) { $("chains").value = "solana"; $("scan").requestSubmit(); }
-} catch {}
+  else loadUpcoming();
+} catch { loadUpcoming(); }
 </script>
 </body>
 </html>

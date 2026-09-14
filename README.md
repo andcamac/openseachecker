@@ -47,7 +47,7 @@ enable Vercel Authentication, so only your login can run scans on your API key.
 - `GET /api/me_collection?symbol=<symbol or magiceden.io URL>[&address=]` — one collection in
   depth: stats, cheapest listings, latest sales, and how many the wallet holds.
 
-The scan auto-detects the address type; pick **Solana** in the chain menu to browse the
+On page load the app shows Magic Eden's upcoming and live launchpad mints straight away (countdowns, price, supply), before any address is entered; they stay on screen during an OpenSea scan. The scan auto-detects the address type; pick **Solana** in the chain menu to browse the
 launchpad and trending without an address. `?address=…` or `?sol=1` in the URL runs a scan on load.
 
 ### OpenSea (EVM)

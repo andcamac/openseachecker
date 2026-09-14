@@ -1,5 +1,14 @@
 {
   "functions": {
     "api/*.js": { "maxDuration": 60 }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/me_launchpad", "destination": "/api/me?route=launchpad" },
+    { "source": "/api/me_trending", "destination": "/api/me?route=trending" },
+    { "source": "/api/me_wallet", "destination": "/api/me?route=wallet" },
+    { "source": "/api/me_collection", "destination": "/api/me?route=collection" },
+    { "source": "/api/prices", "destination": "/api/config?what=prices" },
+    { "source": "/api/privy_config", "destination": "/api/config?what=privy" },
+    { "source": "/api/alerts_config", "destination": "/api/config?what=alerts" }
+  ]
 }

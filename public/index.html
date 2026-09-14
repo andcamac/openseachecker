@@ -1484,10 +1484,10 @@ async function scanSol(address) {
   startTicker();
   const jobs = [
     loadChainMints().then(() => { if (CHAIN_MINTS.list.length) steps.push(`${CHAIN_MINTS.list.filter((m) => m.status === "live").length} on-chain mints live`); }),
-    fetchJson("/api/me_launchpad").then((r) => { ME.launchpad = r.drops; FRESH.me = Date.now(); steps.push(`${r.counts.live} launchpads minting · ${r.counts.upcoming} upcoming`); }),
-    fetchJson("/api/me_trending?range=1d").then((r) => { ME.trending = r.collections; steps.push(`${r.collections.length} trending`); }),
+    fetchJson("/api/me?route=launchpad").then((r) => { ME.launchpad = r.drops; FRESH.me = Date.now(); steps.push(`${r.counts.live} launchpads minting · ${r.counts.upcoming} upcoming`); }),
+    fetchJson("/api/me?route=trending&range=1d").then((r) => { ME.trending = r.collections; steps.push(`${r.collections.length} trending`); }),
   ];
-  if (address) jobs.push(Promise.all(ADDRESSES.map((a) => fetchJson(`/api/me_wallet?address=${encodeURIComponent(a)}`))).then((ws) => { ME.wallet = mergeWallets(ws); steps.push(`${ME.wallet.nfts} NFTs ≈ ${solf(ME.wallet.portfolio.valueSol)}${ws.length > 1 ? ` across ${ws.length} wallets` : ""}`); }));
+  if (address) jobs.push(Promise.all(ADDRESSES.map((a) => fetchJson(`/api/me?route=wallet&address=${encodeURIComponent(a)}`))).then((ws) => { ME.wallet = mergeWallets(ws); steps.push(`${ME.wallet.nfts} NFTs ≈ ${solf(ME.wallet.portfolio.valueSol)}${ws.length > 1 ? ` across ${ws.length} wallets` : ""}`); }));
   const results = await Promise.allSettled(jobs.map((p) => p.then((v) => { $("pbar").firstElementChild.style.width = (10 + (steps.length / jobs.length) * 90) + "%"; render(); return v; })));
   const failed = results.filter((r) => r.status === "rejected").map((r) => r.reason.message);
   $("pbar").hidden = true;
@@ -1527,7 +1527,7 @@ $("one").addEventListener("submit", async (e) => {
       const symbol = (me ? me[1] : raw).toLowerCase();
       if (MODE !== "sol") setMode("sol");
       $("status").textContent = `Reading ${symbol}…`;
-      const c = await fetchJson(`/api/me_collection?symbol=${encodeURIComponent(symbol)}${isSol(ADDRESS) ? `&address=${encodeURIComponent(ADDRESS)}` : ""}`);
+      const c = await fetchJson(`/api/me?route=collection&symbol=${encodeURIComponent(symbol)}${isSol(ADDRESS) ? `&address=${encodeURIComponent(ADDRESS)}` : ""}`);
       ME.collections.set(c.symbol, c);
       render(); openSheet("me:cx:" + c.symbol);
       $("status").textContent = `${c.name}: floor ${solf(c.floor)} · ${c.listed ?? "?"} listed${c.held ? ` · you hold ×${c.held}` : ""}.`;
@@ -1626,7 +1626,7 @@ document.addEventListener("click", async (e) => {
   if (d) {
     d.textContent = "LOADING…";
     try {
-      const c = await fetchJson(`/api/me_collection?symbol=${encodeURIComponent(d.dataset.detail)}${isSol(ADDRESS) ? `&address=${encodeURIComponent(ADDRESS)}` : ""}`);
+      const c = await fetchJson(`/api/me?route=collection&symbol=${encodeURIComponent(d.dataset.detail)}${isSol(ADDRESS) ? `&address=${encodeURIComponent(ADDRESS)}` : ""}`);
       ME.collections.set(c.symbol, c); render(); openSheet("me:cx:" + c.symbol);
     } catch (err) { d.textContent = "FAILED"; }
   }
@@ -1637,7 +1637,7 @@ const CALV = { os: null, me: null, at: 0, horizon: 0, errors: [] };
 async function loadCalendars(force) {
   if (!force && CALV.at && Date.now() - CALV.at < 120_000) return;
   CALV.errors = [];
-  const [os, me] = await Promise.allSettled([fetchJson("/api/drops"), fetchJson("/api/me_launchpad?days=7"), loadChainMints()]);
+  const [os, me] = await Promise.allSettled([fetchJson("/api/drops"), fetchJson("/api/me?route=launchpad&days=7"), loadChainMints()]);
   if (os.status === "fulfilled") CALV.os = os.value.drops; else CALV.errors.push("OpenSea: " + os.reason.message);
   if (me.status === "fulfilled") { CALV.me = me.value.drops; ME.launchpad = me.value.drops; } else CALV.errors.push("Launchpad: " + me.reason.message);
   CALV.at = Date.now();
@@ -1722,12 +1722,12 @@ $("calbody").addEventListener("click", (e) => {
 
 /* ---------- prices, auto-refresh ---------- */
 async function loadPrices() {
-  try { const p = await fetchJson("/api/prices"); PRICES.sol = p.sol; PRICES.eth = p.eth; PRICES.at = Date.now(); if (ITEMS.size) render(); } catch {}
+  try { const p = await fetchJson("/api/config?what=prices"); PRICES.sol = p.sol; PRICES.eth = p.eth; PRICES.at = Date.now(); if (ITEMS.size) render(); } catch {}
 }
 loadPrices(); setInterval(loadPrices, 5 * 60000);
 // Poll the fast-moving sources. Results are edge-cached (90 s / 2 min) so this costs nothing upstream.
 setInterval(() => { if (document.hidden) return; if (CHAIN_MINTS.at) loadChainMints(); }, 60000);
-setInterval(async () => { if (document.hidden || !ME.launchpad.length && MODE !== "sol") return; try { const r = await fetchJson("/api/me_launchpad"); ME.launchpad = r.drops; FRESH.me = Date.now(); render(); } catch {} }, 150000);
+setInterval(async () => { if (document.hidden || !ME.launchpad.length && MODE !== "sol") return; try { const r = await fetchJson("/api/me?route=launchpad"); ME.launchpad = r.drops; FRESH.me = Date.now(); render(); } catch {} }, 150000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && CHAIN_MINTS.at && Date.now() - CHAIN_MINTS.at > 60000) loadChainMints(); });
 
 /* ---------- view / dense / sound ---------- */
@@ -1744,7 +1744,7 @@ $("out").addEventListener("click", (e) => {
   const tr = e.target.closest("tr.row"); if (tr) openSheet(tr.dataset.id);
 });
 $("sigf").addEventListener("click", () => { SIGF = !SIGF; $("sigf").classList.toggle("on", SIGF); render(); });
-fetchJson("/api/alerts_config").then((c) => { TGCFG.enabled = !!c.enabled; TGCFG.bot = c.bot; if (TGCFG.enabled && ITEMS.size) render(); }).catch(() => {});
+fetchJson("/api/config?what=alerts").then((c) => { TGCFG.enabled = !!c.enabled; TGCFG.bot = c.bot; if (TGCFG.enabled && ITEMS.size) render(); }).catch(() => {});
 $("dense").addEventListener("click", () => { const on = document.body.classList.toggle("dense"); $("dense").classList.toggle("on", on); try { localStorage.setItem("mintradar:dense", on ? "1" : ""); } catch {} });
 try { if (localStorage.getItem("mintradar:dense")) { document.body.classList.add("dense"); $("dense").classList.add("on"); } } catch {}
 $("sound").addEventListener("click", () => { SOUND = !SOUND; $("sound").classList.toggle("on", SOUND); $("sound").textContent = SOUND ? "🔔 SOUND" : "🔇 SOUND"; if (SOUND) beep(); });
@@ -1915,7 +1915,7 @@ $("acctpop").addEventListener("click", (e) => {
   else if (a === "logout") logout();
 });
 (async () => {
-  try { AUTH.cfg = await fetchJson("/api/privy_config"); } catch { AUTH.cfg = { enabled: false }; }
+  try { AUTH.cfg = await fetchJson("/api/config?what=privy"); } catch { AUTH.cfg = { enabled: false }; }
   if (!AUTH.cfg.enabled) return;
   renderAuth();
   const q = new URLSearchParams(location.search);
@@ -2095,7 +2095,7 @@ async function loadUpcoming() {
   $("status").textContent = "Loading upcoming mints…"; QUIET_UNTIL = Date.now() + 20000;
   loadChainMints();
   try {
-    const r = await fetchJson("/api/me_launchpad");
+    const r = await fetchJson("/api/me?route=launchpad");
     ME.launchpad = r.drops; FRESH.me = Date.now();
     setMode("sol"); showUi(); startTicker(); render();
     const oc = CHAIN_MINTS.list.filter((m) => m.status === "live").length;

@@ -40,15 +40,15 @@ enable Vercel Authentication, so only your login can run scans on your API key.
 
 ### Solana marketplace API
 
-- `GET /api/me_launchpad[?days=30]` — the whole launchpad calendar (`/v2/launchpad/collections`),
+- `GET /api/me?route=launchpad[&days=30]` — the whole launchpad calendar (`/v2/launchpad/collections`),
   split into live / upcoming / past, with floor + listed count for launched collections so you can
   see if a mint trades above or below mint price. Cached 2 min.
-- `GET /api/me_wallet?address=` — NFTs grouped by collection (`/wallets/{w}/tokens`), floor per
+- `GET /api/me?route=wallet&address=` — NFTs grouped by collection (`/wallets/{w}/tokens`), floor per
   collection → estimated portfolio value, recent activity (`/wallets/{w}/activities`) and escrow
   balance. Magic Eden's collection categories (pfps, gaming, art, …) are attached for grouping.
-- `GET /api/me_trending?range=1h|1d|7d|30d` — `/marketplace/popular_collections` enriched with
+- `GET /api/me?route=trending&range=1h|1d|7d|30d` — `/marketplace/popular_collections` enriched with
   live stats and categories. Cached 5 min.
-- `GET /api/me_collection?symbol=<symbol or magiceden.io URL>[&address=]` — one collection in
+- `GET /api/me?route=collection&symbol=<symbol or magiceden.io URL>[&address=]` — one collection in
   depth: stats, cheapest listings, latest sales, and how many the wallet holds.
 
 On page load the app shows Magic Eden's upcoming and live launchpad mints straight away (countdowns, price, supply), before any address is entered; they stay on screen during an OpenSea scan. The scan auto-detects the address type; pick **Solana** in the chain menu to browse the
@@ -210,7 +210,7 @@ No wallet connection or signature at any point — the app only ever reads publi
   circle pulses and, with **🔔 SOUND** on, the page beeps.
 - **VIEW: CIRCLES / TABLE** — same items as a dense sortable table (click a column header):
   collection, source · chain, status, phase, price, minted with progress bar, opens/ends, links.
-- **USD everywhere**: `/api/prices` (CoinGecko, cached 60 s) puts a ≈ $ figure next to every
+- **USD everywhere**: `/api/config?what=prices` (CoinGecko, cached 60 s) puts a ≈ $ figure next to every
   SOL / ETH price; launched Magic Eden collections show **floor vs mint** as a % badge.
 - **Trust signals**: ✔ = verified on Magic Eden; **⚠ UNVERIFIED** greys out on-chain candy
   machines with no website, no socials and no image (the classic rug shape); **?** flags missing
@@ -224,7 +224,7 @@ No wallet connection or signature at any point — the app only ever reads publi
 
 The **CALENDARS** button opens a full view built from both APIs with no wallet needed:
 OpenSea's featured / upcoming / live drop calendars (`/api/drops`) and Magic Eden's launchpad
-(`/api/me_launchpad`), grouped by chain (Ethereum, Base, …, Solana) with Magic Eden and OpenSea
+(`/api/me?route=launchpad`), grouped by chain (Ethereum, Base, …, Solana) with Magic Eden and OpenSea
 listed as separate categories under each chain. Live mints first, then soonest. ALL / 24H / 7D / 30D
 narrow the window; REFRESH re-pulls (results are cached 2 min).
 
@@ -265,12 +265,25 @@ phones the detail sheet slides up from the bottom, on desktop it docks on the ri
   can't cover price + gas on that chain, so OpenSea refuses to build the transaction.
   Keep a little native token in the wallet for clean yes/no answers.
 
+## Serverless function budget
+
+Vercel's Hobby plan allows **12 serverless functions per deployment**, and every `.js` file under
+`api/` counts as one. So shared code lives in `lib/` (not deployed as functions) and the small
+endpoints are fronted by two dispatchers:
+
+- `api/me.js` → `?route=launchpad|trending|wallet|collection`
+- `api/config.js` → `?what=prices|privy|alerts`
+
+That leaves 8 functions: `check, drops, holdings, sol_mints, tg, alerts_tick, me, config`. The old
+URLs (`/api/me_launchpad`, `/api/prices`, `/api/privy_config`, …) still resolve — `vercel.json`
+rewrites them to the dispatchers — so bookmarks and any external cron keep working.
+
 ## Debugging
 
     /api/drops?debug=1
     /api/check?address=0x...&slug=some-collection&debug=1
 
-    /api/me_launchpad?debug=1
-    /api/me_wallet?address=<solana address>&debug=1
+    /api/me?route=launchpad&debug=1
+    /api/me?route=wallet&address=<solana address>&debug=1
 
 All return the raw upstream payloads.

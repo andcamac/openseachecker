@@ -54,7 +54,7 @@ select{appearance:none;-webkit-appearance:none;padding-right:28px;background-ima
 .chips:empty{display:none}
 .toggle{margin-left:auto;background:var(--card);border:0;color:var(--muted);font-size:10px;letter-spacing:.1em;padding:6px 12px;border-radius:999px;cursor:pointer}
 .toggle:hover{color:var(--text)}
-.panel.folded .chips,.panel.folded .tl,.panel.folded .acts{display:none}
+.panel.folded .chips,.panel.folded .tl,.panel.folded .acts,.panel.folded #ocbody{display:none}
 .calctl{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .pill{background:var(--card);border:0;color:var(--muted);font-size:10px;letter-spacing:.08em;padding:6px 11px;border-radius:999px;cursor:pointer}
 .pill.on{background:var(--soft);color:#13140e}
@@ -136,7 +136,7 @@ select{appearance:none;-webkit-appearance:none;padding-right:28px;background-ima
 .group.folded .bubbles{display:none}
 .bubbles{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--bs),1fr));gap:clamp(10px,2vw,18px) clamp(6px,1.5vw,12px);justify-items:center}
 
-.bub{position:relative;width:100%;max-width:calc(var(--bs) + 16px);background:none;border:0;padding:0;color:inherit;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent}
+.bub{position:relative;width:100%;max-width:calc(var(--bs) + 24px);background:none;border:0;padding:8px 4px 6px;border-radius:20px;color:inherit;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent}
 .bub .ring{width:var(--bs);height:var(--bs);border-radius:50%;padding:4px;background:conic-gradient(var(--rc,var(--chip)) var(--p,0%),var(--card) 0);display:grid;place-items:center;transition:transform .15s}
 .bub:hover .ring,.bub.on .ring{transform:scale(1.05)}
 .bub.on .ring{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--rc,var(--soft))}
@@ -155,6 +155,13 @@ select{appearance:none;-webkit-appearance:none;padding-right:28px;background-ima
 .bub .lk:hover{transform:scale(1.15);color:var(--text);border-color:var(--soft)}
 .bub .lk.mkt{color:var(--orange);border-color:#4a2a12}
 .bub .lk svg{width:12px;height:12px;fill:currentColor}
+/* wallets you can actually mint with — the whole bubble lights up */
+.bub.elig{background:#2a1a0e;box-shadow:inset 0 0 0 1px rgba(255,96,2,.55)}
+.bub.elig .nm{color:#fff}
+.bub.elig .sub{color:var(--orange)}
+table.tv tr.elig td{background:#2a1a0e}
+table.tv tr.elig td:first-child{box-shadow:inset 3px 0 0 var(--orange)}
+table.tv tr.elig:hover td{background:#34200f}
 .bub.you{--rc:var(--orange)}
 .bub.pub{--rc:var(--soft)}
 .bub.solr{--rc:var(--orange)}
@@ -162,6 +169,11 @@ select{appearance:none;-webkit-appearance:none;padding-right:28px;background-ima
 .bub.dim{opacity:.55}.bub.dim:hover{opacity:1}
 .bub .chn{position:absolute;top:2px;right:calc(50% - var(--bs)/2 - 2px);font-size:8px;font-weight:700;letter-spacing:.08em;background:var(--card);color:var(--muted);padding:3px 6px;border-radius:999px;border:2px solid var(--bg)}
 .bub .chn.sol{color:var(--orange)}
+
+/* on-chain Solana section */
+#ocpanel .bubbles{margin-top:2px}
+#ocpanel .tablewrap{margin-top:0}
+#ocpanel h2 em b{color:var(--soft)}
 
 /* ---------- detail sheet ---------- */
 .veil{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
@@ -429,9 +441,9 @@ table.tv .dot.os{background:var(--soft)}table.tv .dot.me{background:var(--orange
       <button data-v="table" type="button">TABLE</button>
     </div>
     <div class="seg" id="seg"><span class="lbl2">GROUP BY</span>
-      <button data-g="status" class="on" type="button">STATUS</button>
-      <button data-g="category" type="button">CATEGORY</button>
-      <button data-g="chain" type="button">CHAIN</button>
+      <button data-g="chain" class="on" type="button">CHAIN</button>
+      <button data-g="status" type="button">STATUS</button>
+      <button data-g="phase" type="button">PHASE</button>
     </div>
     <button class="pill" id="dense" type="button" title="Smaller circles, tighter grid">DENSE</button>
     <button class="pill" id="sound" type="button" title="Beep when a phase opens">🔇 SOUND</button>
@@ -446,8 +458,15 @@ table.tv .dot.os{background:var(--soft)}table.tv .dot.me{background:var(--orange
 
   <div id="out"></div>
 
+  <div class="panel" id="ocpanel" hidden>
+    <h2><span class="tt">Solana · on-chain mints</span><em id="ocmeta">read straight from Candy Machine — every launchpad, and mints that aren't on any</em>
+      <button class="toggle" id="ocfold" type="button">HIDE &#9650;</button></h2>
+    <div id="ocbody"></div>
+  </div>
+
   <div class="legend" id="legend" hidden>
-    <span><i style="background:var(--orange)"></i>Yours: allowlist stage you can mint (OpenSea) · NFTs you hold / launchpad minting now (Magic Eden)</span>
+    <span><i style="background:#2a1a0e;box-shadow:inset 0 0 0 1px var(--orange);border-radius:3px"></i>Orange background = a scanned wallet is on this allowlist and can mint it now</span>
+    <span><i style="background:var(--orange)"></i>Orange ring: yours — eligible stage, NFTs you hold, launchpad minting now</span>
     <span><i style="background:var(--soft)"></i>Public / market: open to anyone, trending, upcoming launches</span>
     <span><i style="background:var(--chip)"></i>Not open yet / closed / not eligible</span>
     <span>Ring fill = mint progress · Solana holdings: share of portfolio · Trending: rank</span>
@@ -557,7 +576,7 @@ const SEEN_IDS = new Set();                 // ids seen before → anything else
 const FEED = [];                            // {at, kind:"new"|"open"|"live", id, name, image, text}
 const PULSE = new Map();                    // id -> until
 let FILTER = "all";
-let GROUP = "status";
+let GROUP = "chain";
 let HIDE = false;
 let TICKER = null;
 const RECHECK = new Map();
@@ -650,8 +669,21 @@ const STATUS_META = {
   ended:        { label: "Ended",                 cls: "",    order: 13 },
   other:        { label: "Other",                 cls: "",    order: 14 },
 };
+const CHAIN_NAME = (c) => ({ ethereum: "Ethereum", base: "Base", solana: "Solana", abstract: "Abstract", ape_chain: "ApeChain", ink: "Ink", robinhood: "Robinhood", other: "Other" }[c] || c);
 const CHAIN_ABBR = (c) => ({ ethereum: "ETH", base: "BASE", solana: "SOL", robinhood: "RH", abstract: "ABS", ape_chain: "APE", ink: "INK" }[c] || String(c || "?").slice(0, 4).toUpperCase());
 const catLabel = (c) => ({ pfps: "PFPs", cnft: "cNFTs", defi: "DeFi", daos: "DAOs" }[c] || String(c).replace(/_/g, " "));
+// Phase buckets are a fixed set — creator stage labels are free text ("Artist Phase", "Purr",
+// "Treasury"…), so anything unrecognised lands in "Other phases" instead of making its own group.
+const PHASE_BUCKETS = ["PUBLIC", "GTD", "FCFS", "WL", "TEAM"];
+const PHASE_ORDER = { PUBLIC: 0, GTD: 1, FCFS: 2, WL: 3, TEAM: 4, OTHER: 5 };
+const phaseBucket = (it) => {
+  if (it.kind === "osdrop") { const c = it.cat; return PHASE_BUCKETS.includes(c) ? c : "OTHER"; }
+  if (it.kind === "launch") return "LAUNCHPAD";
+  if (it.kind === "holding") return "HOLDINGS";
+  if (it.kind === "trending") return "TRENDING";
+  return "OTHER";
+};
+const phaseLabel = (b) => ({ PUBLIC: "Public", GTD: "GTD allowlist", FCFS: "FCFS allowlist", WL: "Whitelist", TEAM: "Team / reserve", OTHER: "Other phases", LAUNCHPAD: "Launchpad", HOLDINGS: "Your NFTs", TRENDING: "Trending" }[b] || b);
 
 function buildItems() {
   const now = Date.now();
@@ -798,6 +830,8 @@ function linkBubbles(it) {
 }
 
 const SRC_NAME = { os: "OpenSea", me: "Magic Eden", oc: "On-chain (Candy Machine)" };
+// A scanned wallet is confirmed on an allowlist stage that's open right now.
+const isEligibleNow = (it) => it.kind === "osdrop" && it.status === "eligible" && !it.src.looksPublic;
 const sigChip = (it) => it.signal ? `<span class="sig ${it.signal.tier.toLowerCase()}" title="Signal ${it.signal.score}/100 · ${esc((it.signal.why || []).join(", ") || "no signals")}">${esc(it.signal.tier)}${it.signal.discord?.members ? ` · ${fmtK(it.signal.discord.members)}` : ""}</span>` : "";
 const fmtK = (n) => (n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k" : String(n));
 
@@ -808,7 +842,7 @@ function bubble(it) {
   const risky = it.risk === "high";
   const tag = risky ? { t: "⚠ UNVERIFIED", c: "warn" } : it.tag;
   const fresh = it.fresh && Date.now() - it.fresh < 6 * 3600000 ? `<span class="fr">NEW · ${esc(ago(it.fresh))}</span>` : "";
-  return `<div class="bub ${it.ring}${it.dim || risky ? " dim" : ""}${risky ? " risk" : ""}${SELECTED === it.id ? " on" : ""}${PULSE.get(it.id) > Date.now() ? " pulse" : ""}" data-id="${esc(it.id)}" role="button" tabindex="0" style="--p:${it.pct.toFixed(1)}%">
+  return `<div class="bub ${it.ring}${isEligibleNow(it) ? " elig" : ""}${it.dim || risky ? " dim" : ""}${risky ? " risk" : ""}${SELECTED === it.id ? " on" : ""}${PULSE.get(it.id) > Date.now() ? " pulse" : ""}" data-id="${esc(it.id)}" role="button" tabindex="0" style="--p:${it.pct.toFixed(1)}%">
     <span class="ring">${img}</span>
     <span class="chn${it.chain === "solana" ? " sol" : ""}" title="${esc(SRC_NAME[it.src_] || "")} · ${esc(it.chain)}"><i class="${esc(it.src_ || "")}"></i>${esc(CHAIN_ABBR(it.chain))}</span>
     ${fresh}
@@ -822,26 +856,29 @@ function bubble(it) {
 const FOLDED = new Set();
 function render() {
   ITEMS = new Map(buildItems().map((i) => [i.id, i]));
-  const rows = [...ITEMS.values()].filter(passes);
+  let rows = [...ITEMS.values()].filter(passes);
   const rank = (i) => STATUS_META[i.status]?.order ?? 99;
   rows.sort((a, b) => rank(a) - rank(b) || (a.sub.at || Infinity) - (b.sub.at || Infinity) || a.name.localeCompare(b.name));
+
+  // Solana on-chain mints live in their own collapsible section, not mixed into the board.
+  trackArrivals();
+  const ocRows = rows.filter((it) => it.src_ === "oc");
+  rows = rows.filter((it) => it.src_ !== "oc");
+  renderOnchain(ocRows);
 
   // Group
   const groups = new Map();
   const put = (key, label, cls, it) => { if (!groups.has(key)) groups.set(key, { label, cls, items: [] }); groups.get(key).items.push(it); };
   for (const it of rows) {
     if (GROUP === "status") { const m = STATUS_META[it.status] || STATUS_META.other; put(it.status, m.label, m.cls, it); }
-    else if (GROUP === "chain") put(it.chain, `${CHAIN_ABBR(it.chain)} · ${it.chain}`, it.chain === "solana" ? "sol" : "", it);
-    else {
-      const cats = it.cats.length ? it.cats : [it.cat || "other"];
-      for (const c of cats) put(String(c).toLowerCase(), catLabel(c), it.chain === "solana" ? "sol" : it.cat === "PUBLIC" ? "pub" : "", it);
-    }
+    else if (GROUP === "chain") put(it.chain, `${CHAIN_ABBR(it.chain)} · ${CHAIN_NAME(it.chain)}`, it.chain === "solana" ? "sol" : "", it);
+    else { const b = phaseBucket(it); put(b, phaseLabel(b), b === "PUBLIC" ? "pub" : b === "HOLDINGS" || b === "LAUNCHPAD" ? "sol" : "", it); }
   }
   let entries = [...groups.entries()];
   if (GROUP === "status") entries.sort((a, b) => (STATUS_META[a[0]]?.order ?? 99) - (STATUS_META[b[0]]?.order ?? 99));
-  else entries.sort((a, b) => b[1].items.length - a[1].items.length || a[1].label.localeCompare(b[1].label));
+  else if (GROUP === "phase") entries.sort((a, b) => (PHASE_ORDER[a[0]] ?? 9) - (PHASE_ORDER[b[0]] ?? 9) || b[1].items.length - a[1].items.length);
+  else entries.sort((a, b) => { const o = (c) => c === "ethereum" ? 0 : c === "base" ? 1 : c === "solana" ? 2 : 3; return o(a[0]) - o(b[0]) || b[1].items.length - a[1].items.length; });
 
-  trackArrivals();
   $("out").innerHTML = VIEW === "table" ? renderTable(rows) : rows.length
     ? entries.map(([key, g]) => `<section class="group${FOLDED.has(key) ? " folded" : ""}" data-g="${esc(key)}">
         <div class="gh"><b class="${g.cls}">${esc(g.label)}</b><span>${g.items.length}</span><i>${FOLDED.has(key) ? "SHOW ▼" : "HIDE ▲"}</i></div>
@@ -871,6 +908,13 @@ function trackArrivals() {
   FIRST_RENDER = false;
 }
 function pushEvent(ev) { FEED.unshift(ev); FEED.sort((a, b) => b.at - a.at); if (FEED.length > 40) FEED.length = 40; }
+function renderOnchain(ocRows) {
+  if (!ocRows.length) { $("ocpanel").hidden = true; return; }
+  $("ocpanel").hidden = false;
+  const live = ocRows.filter((i) => i.status === "live").length, up = ocRows.filter((i) => i.status === "upcoming").length, fresh = ocRows.filter((i) => i.fresh).length;
+  $("ocmeta").innerHTML = `<b>${live}</b> minting now · <b>${up}</b> scheduled${fresh ? ` · <b>${fresh}</b> just deployed` : ""} — read straight from Candy Machine, every launchpad and none`;
+  $("ocbody").innerHTML = VIEW === "table" ? renderTable(ocRows) : `<div class="bubbles">${ocRows.map(bubble).join("")}</div>`;
+}
 function renderFeed() {
   const has = ITEMS.size > 0;
   $("ticker").hidden = !has;
@@ -944,7 +988,7 @@ function renderTable(rows) {
   const body = data.map(({ it, r }) => {
     const risky = it.risk === "high";
     const st = risky ? { t: "⚠ UNVERIFIED", c: "" } : it.tag;
-    return `<tr class="row${it.dim || risky ? " dim" : ""}" data-id="${esc(it.id)}">
+    return `<tr class="row${isEligibleNow(it) ? " elig" : ""}${it.dim || risky ? " dim" : ""}" data-id="${esc(it.id)}">
       <td><div class="nmc">${it.image ? `<img src="${esc(it.image)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph2',textContent:'◈'}))">` : `<div class="ph2">◈</div>`}<div><b>${esc(it.name)}${it.badged ? ' <span style="color:var(--soft)">✔</span>' : ""}</b><small>${esc(STATUS_META[it.status]?.label || it.status)}${it.fresh && Date.now() - it.fresh < 6 * 3600000 ? ` · NEW ${esc(ago(it.fresh))}` : ""}</small></div></div></td>
       <td><span class="dot ${esc(it.src_ || "")}"></span>${esc(SRC_NAME[it.src_] || "")} · ${esc(CHAIN_ABBR(it.chain))}</td>
       <td><span class="st2 ${st.c === "g" || st.c === "s" ? "you" : st.c === "y" ? "pub" : ""}">${esc(st.t || "—")}</span></td>
@@ -1384,21 +1428,24 @@ $("seg").addEventListener("click", (e) => {
   for (const o of $("seg").querySelectorAll("button")) o.classList.toggle("on", o === b);
   GROUP = b.dataset.g; try { localStorage.setItem("mintradar:group", GROUP); } catch {} render();
 });
-try { const g = localStorage.getItem("mintradar:group"); if (g && ["status", "category", "chain"].includes(g)) { GROUP = g; for (const o of $("seg").querySelectorAll("button")) o.classList.toggle("on", o.dataset.g === g); } } catch {}
+try { const g = localStorage.getItem("mintradar:group"); if (g && ["status", "phase", "chain"].includes(g)) { GROUP = g; for (const o of $("seg").querySelectorAll("button")) o.classList.toggle("on", o.dataset.g === g); } } catch {}
 $("hide").addEventListener("click", () => { HIDE = !HIDE; $("hide").classList.toggle("on", HIDE); render(); });
 
-const foldable = (panelId, btnId, key) => {
+const foldable = (panelId, btnId, key, defaultFolded) => {
   $(btnId).addEventListener("click", () => {
     const folded = $(panelId).classList.toggle("folded");
     $(btnId).innerHTML = folded ? "SHOW &#9660;" : "HIDE &#9650;";
-    try { localStorage.setItem(key, folded ? "1" : ""); } catch {}
+    try { localStorage.setItem(key, folded ? "1" : "0"); } catch {}
   });
-  try { if (localStorage.getItem(key)) { $(panelId).classList.add("folded"); $(btnId).innerHTML = "SHOW &#9660;"; } } catch {}
+  let saved = null; try { saved = localStorage.getItem(key); } catch {}
+  const folded = saved == null ? !!defaultFolded : saved === "1";
+  if (folded) { $(panelId).classList.add("folded"); $(btnId).innerHTML = "SHOW &#9660;"; }
 };
 foldable("panel", "fold", "mintradar:folded");
 foldable("calpanel", "calfold", "mintradar:calfolded");
 foldable("actpanel", "actfold", "mintradar:actfolded");
-foldable("lmpanel", "lmfold", "mintradar:lmfolded");
+foldable("lmpanel", "lmfold", "mintradar:lmfolded", true);
+foldable("ocpanel", "ocfold", "mintradar:ocfolded");
 // LaunchMyNFT embed — the frame only gets a src when the panel is visible, so a folded panel costs nothing.
 const LM_URL = (sort) => `https://www.launchmynft.io/explore?sort=${sort}`;
 let LM_SORT = "latest";
@@ -1432,6 +1479,12 @@ $("out").addEventListener("keydown", (e) => {
   const b = e.target.closest(".bub"); if (b && e.target === b) { e.preventDefault(); openSheet(b.dataset.id); }
 });
 $("chips").addEventListener("click", (e) => { const c = e.target.closest(".chip"); if (c) openSheet(c.dataset.id); });
+$("ocbody").addEventListener("click", (e) => {
+  const th = e.target.closest("th[data-k]");
+  if (th) { TSORT = { key: th.dataset.k, dir: TSORT.key === th.dataset.k ? -TSORT.dir : 1 }; render(); return; }
+  if (e.target.closest("a.lk")) return;
+  const t = e.target.closest(".bub,tr.row"); if (t) openSheet(t.dataset.id);
+});
 $("timeline").addEventListener("click", (e) => { const r = e.target.closest(".row[data-id]"); if (r) { e.preventDefault(); openSheet(r.dataset.id); } });
 $("veil").addEventListener("click", closeSheet);
 $("sx").addEventListener("click", closeSheet);
@@ -1454,7 +1507,6 @@ document.addEventListener("click", async (e) => {
 
 /* ---------- CALENDARS view: both APIs, no wallet needed, grouped by chain ---------- */
 const CALV = { os: null, me: null, at: 0, horizon: 0, errors: [] };
-const CHAIN_NAME = (c) => ({ ethereum: "Ethereum", base: "Base", solana: "Solana", abstract: "Abstract", ape_chain: "ApeChain", ink: "Ink", robinhood: "Robinhood" }[c] || c);
 async function loadCalendars(force) {
   if (!force && CALV.at && Date.now() - CALV.at < 120_000) return;
   CALV.errors = [];
@@ -1581,12 +1633,13 @@ const COMMANDS = [
   { k: "GO", label: "Open Calendars", run: openCalendars },
   { k: "GO", label: "Browse Solana mints (no address)", run: () => { $("chains").value = "solana"; $("addr").value = ""; $("scan").requestSubmit(); } },
   { k: "GROUP", label: "Group by status", run: () => $("seg").querySelector('[data-g="status"]').click() },
-  { k: "GROUP", label: "Group by category", run: () => $("seg").querySelector('[data-g="category"]').click() },
+  { k: "GROUP", label: "Group by phase", run: () => $("seg").querySelector('[data-g="phase"]').click() },
   { k: "GROUP", label: "Group by chain", run: () => $("seg").querySelector('[data-g="chain"]').click() },
   { k: "FILTER", label: "Show everything", run: () => { FILTER = "all"; render(); } },
   { k: "FILTER", label: "Hide what I can't mint (toggle)", run: () => $("hide").click() },
   { k: "FILTER", label: "HOT+ signal only (toggle)", run: () => $("sigf").click() },
   { k: "PANEL", label: "Show / hide LaunchMyNFT widget", run: () => $("lmfold").click() },
+  { k: "PANEL", label: "Show / hide Solana on-chain mints", run: () => $("ocfold").click() },
 ];
 function palRender(q) {
   q = q.trim(); const ql = q.toLowerCase();

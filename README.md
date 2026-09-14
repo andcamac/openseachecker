@@ -188,8 +188,12 @@ Every drop / collection is a circle. The ring colour is the status, the ring fil
 progress (OpenSea drops), share of your portfolio (Solana holdings) or rank (trending).
 Under every circle a row of small link bubbles gives the project's website, X, Discord (and Instagram /
 Telegram when OpenSea lists them) plus its marketplace page — pulled from OpenSea collection info,
-Magic Eden collection info, or the on-chain metadata JSON for candy machines. **GROUP BY** switches between status, category (phase type for OpenSea: GTD / FCFS / WL /
-PUBLIC; Magic Eden's own categories for Solana) and chain. The layout is responsive — on
+Magic Eden collection info, or the on-chain metadata JSON for candy machines. **GROUP BY** switches between **chain** (the default — Ethereum, Base, Solana…), **status**, and
+**phase** (Public / GTD / FCFS / Whitelist / Team, with unrecognised creator stage labels collected
+into "Other phases" rather than one group each). Solana **on-chain** mints sit in their own
+collapsible section below the board, so raw Candy Machine discoveries never crowd out the
+marketplace drops. Anything a scanned wallet is confirmed eligible to mint gets an **orange
+background** — in both the circle and table views. The layout is responsive — on
 phones the detail sheet slides up from the bottom, on desktop it docks on the right.
 
 - **Orange** = yours: an allowlist stage this address can mint (OpenSea), NFTs you hold or a

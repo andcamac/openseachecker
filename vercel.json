@@ -1,16 +1,6 @@
 {
   "functions": {
-    "api/*.js": {
-      "maxDuration": 30
-    },
-    "api/alerts_tick.js": {
-      "maxDuration": 60
-    }
-  },
-  "crons": [
-    {
-      "path": "/api/alerts_tick",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+    "api/*.js": { "maxDuration": 30 },
+    "api/alerts_tick.js": { "maxDuration": 60 }
+  }
 }

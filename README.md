@@ -60,6 +60,32 @@ launchpad and trending without an address. `?address=…` or `?sol=1` in the URL
 - The page loops through the calendar 4 at a time, renders hits as they land, runs live
   countdowns, and re-checks a drop automatically the moment its next phase opens.
 
+## On-chain Solana mint radar (any launchpad)
+
+`GET /api/sol_mints` reads the chain instead of a launchpad. Nearly every Solana launchpad
+(LaunchMyNFT, Metaplex Creator Studio, Truffle, custom sites) mints through Metaplex **Candy
+Machine v3** or **Core Candy Machine**, so the route pulls the latest transactions on those two
+programs (Helius enhanced transactions API), collects every candy machine they touch, decodes each
+one plus its Candy Guard — start/end date, SOL price, per-wallet limit, allowlist, bot tax, phase
+groups — and resolves the collection's name and image via Helius DAS. You get what is minting
+right now, what was just deployed, and what is scheduled, regardless of where the mint page lives.
+
+Works with either provider — set one (or both) in Vercel:
+
+- `HELIUS_API_KEY` (free tier: https://dashboard.helius.dev) — uses Helius's enhanced-transactions
+  API (one request per 100 transactions) and DAS for collection metadata. Fastest.
+- `QUICKNODE_RPC_URL` (your QuickNode Solana mainnet endpoint URL, free tier works; `SOLANA_RPC_URL`
+  is accepted as an alias and any standard Solana RPC will do) — uses plain JSON-RPC:
+  `getSignaturesForAddress` + batched `getTransaction` (25 per request). Collection name/image
+  come from the QuickNode **Metaplex DAS API add-on** if you've enabled it, otherwise they're read
+  from the Metaplex Token Metadata / Core collection accounts and the metadata JSON.
+  Default scan depth is 2 pages per program (≈ 400 transactions ≈ 18 RPC requests).
+
+If both are set, Helius handles the transaction scan and QuickNode serves account reads. Without
+either, the section stays off and the app says so. Results cache 90 s. `?pages=1..6` controls how
+far back the scan looks (100 transactions per page per program); `?debug=1` shows which provider
+answered.
+
 ## LaunchMyNFT widget
 
 LaunchMyNFT has no public API and no upcoming-mints calendar (collections go live the moment a

@@ -418,6 +418,7 @@ let MODE = "evm";              // evm | sol — what the last scan was
 let ROWS = new Map();          // slug -> /api/check result (OpenSea)
 const HOLD = new Map();        // slug -> holdings (OpenSea)
 const ME = { launchpad: [], wallet: null, trending: [], collections: new Map() };   // Magic Eden
+const CHAIN_MINTS = { list: [], disabled: false, at: 0 };                            // Solana on-chain (Candy Machine via Helius)
 let FILTER = "all";
 let GROUP = "status";
 let HIDE = false;
@@ -498,7 +499,7 @@ const STATUS_META = {
   eligible:     { label: "Eligible now",          cls: "you", order: 0 },
   public:       { label: "Public open",           cls: "pub", order: 1 },
   unfunded:     { label: "Needs funds",           cls: "",    order: 2 },
-  live:         { label: "Live on Launchpad",     cls: "sol", order: 3 },
+  live:         { label: "Minting now",           cls: "sol", order: 3 },
   upcoming:     { label: "Upcoming",              cls: "",    order: 4 },
   holding:      { label: "Your NFTs",             cls: "sol", order: 5 },
   trending:     { label: "Trending on Magic Eden",cls: "sol", order: 6 },
@@ -551,6 +552,20 @@ function buildItems() {
       id: "me:lp:" + l.symbol, kind: "launch", name: l.name, image: l.image, url: l.url, chain: "solana",
       status, cat: "LAUNCHPAD", cats: l.categories || [], pct: status === "live" ? 100 : status === "upcoming" ? 0 : 100,
       ring: status === "live" || held ? "solr" : status === "upcoming" ? "pub" : "q", dim: false, tag, sub, src: l,
+    });
+  }
+  for (const m of CHAIN_MINTS.list) {
+    if (m.status === "ended") continue;
+    const pct = m.itemsAvailable ? Math.min(100, (m.itemsRedeemed / m.itemsAvailable) * 100) : 0;
+    const ph = m.phase || {};
+    const price = ph.priceSol != null ? solf(ph.priceSol) : ph.tokenPayment ? "token" : "—";
+    const tag = m.status === "live" ? { t: m.deployedNow ? "NEW · MINTING" : "MINTING", c: "y" } : m.status === "upcoming" ? { t: ph.allowList ? "WL · UPCOMING" : "UPCOMING", c: "" } : { t: "SOLD OUT", c: "" };
+    const sub = m.status === "upcoming" && m.nextStart ? { t: countdown(m.nextStart), at: m.nextStart, cls: "", pre: "opens in" }
+      : { t: `${m.itemsRedeemed}/${m.itemsAvailable || "?"} · ${price}${m.recentMints ? ` · ${m.recentMints} recent` : ""}`, cls: m.status === "live" ? "live" : "" };
+    items.push({
+      id: "cm:" + m.candyMachine, kind: "cmmint", name: m.name, image: m.image, url: m.url, chain: "solana",
+      status: m.status === "sold_out" ? "sold_out" : m.status, cat: "ON-CHAIN", cats: [], pct,
+      ring: m.status === "live" ? "pub" : "q", dim: m.status === "sold_out", tag, sub, src: m,
     });
   }
   if (ME.wallet) {
@@ -797,6 +812,26 @@ function sheetHtml(it) {
       + (l.description ? `<p class="desc">${esc(l.description)}</p>` : "")
       + `<div class="foot"><a class="pri sol" href="${esc(l.url)}" target="_blank" rel="noopener">LAUNCHPAD ↗</a><a href="${esc(l.marketUrl)}" target="_blank" rel="noopener">MARKET ↗</a>${l.contract ? `<button data-copy="${esc(l.contract)}" type="button">${esc(short(l.contract))}</button>` : ""}</div>`;
   }
+  if (it.kind === "cmmint") {
+    const m = it.src;
+    const ph = m.phase || {};
+    const phaseRow = (p) => { const open = (p.startAt == null || p.startAt <= now) && (p.endAt == null || p.endAt > now); const past = p.endAt && p.endAt <= now; return `<div class="st ${past ? "no" : open ? "pubs live" : "q"}"><b>${esc(p.label.toUpperCase())}${p.priceSol != null ? " " + esc(solf(p.priceSol)) : ""}${p.perWallet ? ` ×${p.perWallet}` : ""}</b><small>${past ? "closed" : open ? "live" : p.startAt ? esc(stamp(p.startAt)) : "no start"}${p.allowList ? " · WL" : ""}</small></div>`; };
+    return head(`<span class="badge ${it.tag.c || "d"}">${esc(it.tag.t)}</span>`, `SOL · on-chain · ${m.kind === "core" ? "Core Candy Machine" : "Candy Machine v3"}${m.hasGuard ? "" : " · no guard"}`)
+      + kv([
+        ["Minted", `${m.itemsRedeemed}<small>/${m.itemsAvailable || "?"}</small>`],
+        m.itemsAvailable ? ["Left", `${Math.max(0, m.itemsAvailable - m.itemsRedeemed)}`] : null,
+        ["Price", ph.priceSol != null ? esc(solf(ph.priceSol)) : ph.tokenPayment ? `${ph.tokenPayment.amount} <small>token</small>` : "—", "sol"],
+        ph.perWallet ? ["Per wallet", `×${ph.perWallet}`] : null,
+        m.status === "upcoming" && m.nextStart ? ["Opens in", `<span data-at="${m.nextStart}" class="cdv">${countdown(m.nextStart)}</span>`, "live"] : ph.endAt && ph.endAt > now ? ["Ends in", `<span data-at="${ph.endAt}" class="cdv">${countdown(ph.endAt)}</span>`] : null,
+        m.recentMints ? ["Recent mints", `${m.recentMints}`] : null,
+        ph.botTax ? ["Bot tax", esc(solf(ph.botTax))] : null,
+      ])
+      + `<div class="prog"><i style="width:${it.pct}%"></i></div>`
+      + (m.phases?.length ? `<h4>Phases (Candy Guard)</h4><div class="stages">${m.phases.slice(0, 4).map(phaseRow).join("")}</div>` : "")
+      + (m.description ? `<p class="desc">${esc(m.description)}</p>` : "")
+      + `<p class="desc" style="color:var(--dim)">Read straight from the Candy Machine account — the same data every launchpad shows. Mint on the project's own site or launchpad; this page never sends transactions.</p>`
+      + `<div class="foot"><a class="pri sol" href="${esc(m.collectionUrl)}" target="_blank" rel="noopener">COLLECTION ↗</a><a href="${esc(m.url)}" target="_blank" rel="noopener">SOLSCAN ↗</a><button data-copy="${esc(m.candyMachine)}" type="button">${esc(short(m.candyMachine))}</button></div>`;
+  }
   if (it.kind === "holding") {
     const c = it.src;
     return head(`<span class="badge s">${esc(it.tag.t)}</span>`, `SOL · your holdings${c.badged ? " · ✔ verified" : ""}`)
@@ -941,6 +976,7 @@ async function scanSol(address) {
   $("pbar").firstElementChild.style.width = "10%";
   startTicker();
   const jobs = [
+    loadChainMints().then(() => { if (CHAIN_MINTS.list.length) steps.push(`${CHAIN_MINTS.list.filter((m) => m.status === "live").length} on-chain mints live`); }),
     fetchJson("/api/me_launchpad").then((r) => { ME.launchpad = r.drops; steps.push(`${r.counts.live} launchpads minting · ${r.counts.upcoming} upcoming`); }),
     fetchJson("/api/me_trending?range=1d").then((r) => { ME.trending = r.collections; steps.push(`${r.collections.length} trending`); }),
   ];
@@ -1081,7 +1117,7 @@ const CHAIN_NAME = (c) => ({ ethereum: "Ethereum", base: "Base", solana: "Solana
 async function loadCalendars(force) {
   if (!force && CALV.at && Date.now() - CALV.at < 120_000) return;
   CALV.errors = [];
-  const [os, me] = await Promise.allSettled([fetchJson("/api/drops"), fetchJson("/api/me_launchpad?days=7")]);
+  const [os, me] = await Promise.allSettled([fetchJson("/api/drops"), fetchJson("/api/me_launchpad?days=7"), loadChainMints()]);
   if (os.status === "fulfilled") CALV.os = os.value.drops; else CALV.errors.push("OpenSea: " + os.reason.message);
   if (me.status === "fulfilled") { CALV.me = me.value.drops; ME.launchpad = me.value.drops; } else CALV.errors.push("Magic Eden: " + me.reason.message);
   CALV.at = Date.now();
@@ -1097,6 +1133,12 @@ function calRows() {
     const ph = live ? (d.activeStage?.label || "LIVE") : (d.nextStage?.label || "next stage");
     rows.push({ chain: d.chain || "other", src: "opensea", at: live ? (toMsClient(d.activeStage?.end) || 0) : at, live, name: d.name, image: d.image, url: d.url,
       cat: catOf({ type: live ? d.activeStage?.type : d.nextStage?.type, label: ph }), meta: full && full.allStages ? `${full.allStages.length} stages` : "", id: full ? "os:" + d.slug : null, slug: d.slug });
+  }
+  for (const m of CHAIN_MINTS.list) {
+    if (m.status !== "live" && m.status !== "upcoming") continue;
+    const ph = m.phase || {};
+    rows.push({ chain: "solana", src: "onchain", at: m.status === "live" ? (ph.endAt && ph.endAt > now ? ph.endAt : null) : m.nextStart, opened: ph.startAt, live: m.status === "live", name: m.name, image: m.image, url: m.collectionUrl, cat: ph.allowList ? "WL" : "PUBLIC",
+      meta: `${ph.priceSol != null ? solf(ph.priceSol) : "token"} · ${m.itemsRedeemed}/${m.itemsAvailable || "?"} minted${m.deployedNow ? " · new" : ""}`, id: "cm:" + m.candyMachine });
   }
   for (const l of CALV.me || []) {
     if (l.status === "past" || !l.launchAt) continue;
@@ -1129,8 +1171,9 @@ function renderCalendars() {
   const block = (title, sub, list) => `<div class="src"><h4><span>${title}</span><i>${sub}</i></h4><div class="tl">${list.length ? list.map(row).join("") : `<div class="empty3">Nothing scheduled in this window.</div>`}</div></div>`;
 
   $("calbody").innerHTML = chains.length ? chains.map(([c, list]) => {
-    const me = list.filter((r) => r.src === "magiceden"), os = list.filter((r) => r.src === "opensea");
+    const me = list.filter((r) => r.src === "magiceden"), os = list.filter((r) => r.src === "opensea"), oc = list.filter((r) => r.src === "onchain");
     return `<div class="chainh"><b>${esc(CHAIN_ABBR(c))}</b> ${esc(CHAIN_NAME(c))} <span>${list.length}</span></div>`
+      + (c === "solana" ? block("On-chain — Candy Machine mints", CHAIN_MINTS.disabled ? "off — set HELIUS_API_KEY or QUICKNODE_RPC_URL in Vercel to read every Solana mint straight from the chain" : `${oc.length} live or scheduled · any launchpad`, oc) : "")
       + (c === "solana" || me.length ? block("Magic Eden — upcoming mints", `${me.length} launchpad mint${me.length === 1 ? "" : "s"}`, me) : "")
       + (c === "solana" ? `<div class="src"><h4><span>LaunchMyNFT — live mints</span><i>no calendar API — mints go live on deploy</i></h4><div class="tl"><a class="row" href="#" data-lm-open="1"><span class="when">LIVE</span><span class="ph al">EXPLORE</span><span class="nm">See what's minting right now on LaunchMyNFT <span class="meta2">embedded on the main page</span></span><span class="meta2 tail">open widget ↗</span></a></div></div>` : "")
       + (c !== "solana" || os.length ? block("OpenSea — upcoming mints", `${os.length} drop${os.length === 1 ? "" : "s"} · featured, upcoming and live calendars`, os) : "");
@@ -1158,13 +1201,22 @@ $("calbody").addEventListener("click", (e) => {
 });
 
 /* ---------- upcoming mints, shown before any scan ---------- */
+async function loadChainMints() {
+  try {
+    const r = await fetchJson("/api/sol_mints");
+    CHAIN_MINTS.list = r.mints || []; CHAIN_MINTS.disabled = !!r.disabled; CHAIN_MINTS.at = Date.now();
+  } catch (err) { CHAIN_MINTS.list = []; CHAIN_MINTS.error = err.message; }
+  render();
+}
 async function loadUpcoming() {
-  $("status").textContent = "Loading upcoming Magic Eden launchpad mints…";
+  $("status").textContent = "Loading upcoming mints…";
+  loadChainMints();
   try {
     const r = await fetchJson("/api/me_launchpad");
     ME.launchpad = r.drops;
     setMode("sol"); showUi(); startTicker(); render();
-    $("elig").innerHTML = `<b style="color:var(--orange)">${r.counts.live}</b> launchpad mint${r.counts.live === 1 ? "" : "s"} live · <b style="color:var(--soft)">${r.counts.upcoming}</b> upcoming on Magic Eden. Paste a 0x address to scan OpenSea drops, or a Solana address to see your NFTs and activity.`;
+    const oc = CHAIN_MINTS.list.filter((m) => m.status === "live").length;
+    $("elig").innerHTML = `<b style="color:var(--orange)">${r.counts.live}</b> launchpad mint${r.counts.live === 1 ? "" : "s"} live · <b style="color:var(--soft)">${r.counts.upcoming}</b> upcoming on Magic Eden${CHAIN_MINTS.disabled ? " · on-chain radar off (set HELIUS_API_KEY or QUICKNODE_RPC_URL)" : oc ? ` · <b style="color:var(--soft)">${oc}</b> minting on-chain right now` : ""}. Paste a 0x address to scan OpenSea drops, or a Solana address to see your NFTs and activity.`;
     $("status").textContent = `Magic Eden launchpad · ${r.counts.live} minting now · ${r.counts.upcoming} upcoming · ${r.counts.past} recent. Scan an address for more.`;
   } catch (err) { $("status").textContent = "Couldn't load the Magic Eden launchpad: " + err.message; }
 }

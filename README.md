@@ -1,5 +1,9 @@
 # Mint Radar
 
+A live mint radar for EVM chains and Solana, assembled from public marketplace APIs and on-chain
+data. Nothing is curated by hand and no wallet signature is ever required to read.
+
+
 Paste a wallet address and see your mint radar as circles, grouped by status, category or chain:
 
 - **EVM (0x…)** — which OpenSea drops this wallet can mint right now: public stages and
@@ -34,7 +38,7 @@ enable Vercel Authentication, so only your login can run scans on your API key.
 
 ## How it works
 
-### Magic Eden (Solana)
+### Solana marketplace API
 
 - `GET /api/me_launchpad[?days=30]` — the whole launchpad calendar (`/v2/launchpad/collections`),
   split into live / upcoming / past, with floor + listed count for launched collections so you can
@@ -92,6 +96,21 @@ LaunchMyNFT has no public API and no upcoming-mints calendar (collections go liv
 creator deploys them), so the app embeds its live explore page — LATEST / HOT — in a collapsible
 panel. The frame only loads while the panel is open. It's also linked from the Solana section of
 CALENDARS.
+
+## Terms gate
+
+First visit shows a full-screen terms & disclaimer page: the app fetches nothing until it is
+accepted, and the acceptance is stored per browser (`mintradar:terms:v1`). The text states plainly
+that the tool only relays public API and on-chain data, curates nothing, gives no financial advice,
+never takes custody or asks for a key, and carries no liability for losses. ⌘K → *View terms*
+re-opens it read-only.
+
+## Telegram button
+
+A **🔔 TELEGRAM** button sits in the header at all times. Configured, it opens the bot, offers a
+one-tap "alert me when this wallet is eligible" link for the scanned address, and lists the bot
+commands. Unconfigured, it says so and names the environment variables the operator needs — so the
+feature is never invisible.
 
 ## Themes, layout and sign-in
 

@@ -62,7 +62,7 @@ export async function meFetch(path, opts = {}) {
     let body; try { body = JSON.parse(text); } catch { body = { raw: text.slice(0, 500) }; }
     return { ok: res.ok, status: res.status, body };
   }
-  return { ok: false, status: 429, body: { error: "Magic Eden rate limit — try again in a moment" } };
+  return { ok: false, status: 429, body: { error: "Marketplace rate limit — try again in a moment" } };
 }
 
 // Run `fn` over items with a small concurrency cap; failures become null.

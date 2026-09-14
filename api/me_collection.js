@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   let symbol = String(req.query.symbol || "").trim();
   const m = symbol.match(/magiceden\.io\/(?:marketplace|launchpad)\/([a-z0-9._-]+)/i);
   if (m) symbol = m[1];
-  if (!isSymbol(symbol)) return res.status(400).json({ error: "Provide a Magic Eden collection symbol or URL" });
+  if (!isSymbol(symbol)) return res.status(400).json({ error: "Provide a collection symbol or URL" });
   const address = String(req.query.address || "").trim();
 
   try {
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
           })
         : Promise.resolve(null),
     ]);
-    if (!info && !stats) return res.status(404).json({ error: `Magic Eden has no collection "${symbol}"` });
+    if (!info && !stats) return res.status(404).json({ error: `No collection found for "${symbol}"` });
 
     res.setHeader("cache-control", "no-store");
     res.status(200).json({

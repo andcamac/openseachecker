@@ -16,7 +16,7 @@ async function tokens(address) {
     const out = [];
     for (let offset = 0; offset < MAX_TOKENS; offset += 500) {
       const { ok, status, body } = await meFetch(`/wallets/${address}/tokens?offset=${offset}&limit=500&listStatus=both`);
-      if (!ok) { if (!out.length) throw new Error(body.error || body.message || body.raw || `Magic Eden HTTP ${status}`); break; }
+      if (!ok) { if (!out.length) throw new Error(body.error || body.message || body.raw || `Marketplace HTTP ${status}`); break; }
       const list = Array.isArray(body) ? body : body.tokens || [];
       out.push(...list);
       if (list.length < 500) break;
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
       if (infos[i]) { c.categories = infos[i].categories; c.badged = infos[i].badged; c.links = infos[i].links; if (!c.image) c.image = infos[i].image; if (infos[i].name) c.name = infos[i].name; }
       c.url = meCollectionUrl(c.symbol);
     });
-    const sigs = await mapLimit(priced, 4, (c) => signalFor({ links: c.links, image: c.image, verified: c.badged, verifiedLabel: "Magic Eden badge" }));
+    const sigs = await mapLimit(priced, 4, (c) => signalFor({ links: c.links, image: c.image, verified: c.badged, verifiedLabel: "marketplace verified" }));
     priced.forEach((c, i) => { c.signal = sigs[i] || null; });
 
     const activity = acts.map((a) => ({

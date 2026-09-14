@@ -14,7 +14,7 @@ export default async function handler(req, res) {
       let { ok, body } = await meFetch(`/marketplace/popular_collections?timeRange=${range}`);
       // Fall back to a wider window if ME has nothing for the short one.
       if (ok && Array.isArray(body) && !body.length && range !== "7d") ({ ok, body } = await meFetch(`/marketplace/popular_collections?timeRange=7d`));
-      if (!ok) throw new Error(body.error || body.raw || "Magic Eden popular_collections failed");
+      if (!ok) throw new Error(body.error || body.raw || "Trending collections request failed");
       return (Array.isArray(body) ? body : body.collections || []).slice(0, 24);
     });
 
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       if (stats[i]) { c.floor = stats[i].floor ?? c.floor; c.listed = stats[i].listed; c.avg24h = stats[i].avg24h; c.volume7d = stats[i].volume7d; }
       if (infos[i]) { c.categories = infos[i].categories; c.badged = infos[i].badged; c.twitter = infos[i].twitter; c.links = infos[i].links; if (!c.image) c.image = infos[i].image; }
     });
-    const sigs = await mapLimit(items, 4, (c) => signalFor({ links: c.links, image: c.image, verified: c.badged, verifiedLabel: "Magic Eden badge" }));
+    const sigs = await mapLimit(items, 4, (c) => signalFor({ links: c.links, image: c.image, verified: c.badged, verifiedLabel: "marketplace verified" }));
     items.forEach((c, i) => { c.signal = sigs[i] || null; });
 
     res.setHeader("cache-control", "s-maxage=300, stale-while-revalidate=900");

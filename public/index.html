@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mint Radar</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%2313140e'/%3E%3Ccircle cx='20' cy='20' r='14' fill='none' stroke='%23ffffff' stroke-opacity='.25' stroke-width='1.6'/%3E%3Ccircle cx='20' cy='20' r='8.5' fill='none' stroke='%23ffffff' stroke-opacity='.18' stroke-width='1.2'/%3E%3Cpath d='M20 13 L26 20 L20 27 L14 20 Z' fill='%23ff6002'/%3E%3Ccircle cx='29' cy='13' r='2.4' fill='%23ff6002'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#13140e">
+<meta name="description" content="Live mint radar for EVM chains and Solana — public APIs and on-chain data only.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -355,6 +358,37 @@ table.tv .usd{color:var(--dim);font-size:10px}
 table.tv .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;background:var(--dim)}
 table.tv .dot.os{background:var(--soft)}table.tv .dot.me{background:var(--orange)}table.tv .dot.oc{background:var(--muted)}
 
+/* ---------- logo ---------- */
+.logo{display:block;flex:0 0 auto}
+.logo .sweep{transform-origin:50% 50%;animation:radar 3.6s linear infinite}
+@keyframes radar{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.logo .sweep{animation:none}}
+.brand{gap:12px}
+.brand .wm{display:flex;flex-direction:column;line-height:1}
+.brand .wm b{font-size:16px;letter-spacing:.14em;font-weight:700}
+.brand .wm small{color:var(--muted);font-weight:400;font-size:9px;letter-spacing:.22em;margin-top:3px}
+
+/* ---------- license gate ---------- */
+.gate{position:fixed;inset:0;z-index:200;background:var(--bg);display:grid;place-items:center;padding:20px;overflow:auto}
+.gate[hidden]{display:none}
+.gbox{width:min(560px,100%);background:var(--panel);border:1px solid var(--chip);border-radius:24px;padding:clamp(20px,4vw,34px);text-align:center}
+.gbox .logo{margin:0 auto 14px}
+.gbox h1{margin:0;font-size:20px;letter-spacing:.18em;font-weight:700}
+.gbox .tag{color:var(--muted);font-size:11px;line-height:1.6;margin:8px 0 18px}
+.terms{text-align:left;background:var(--card);border-radius:14px;padding:14px 16px;max-height:34vh;overflow:auto;font-size:11px;line-height:1.7;color:var(--soft)}
+.terms h4{margin:0 0 8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.terms ul{margin:0;padding-left:16px}
+.terms li{margin-bottom:7px}
+.terms b{color:var(--text)}
+.agree{display:flex;align-items:center;gap:10px;margin:16px 2px;font-size:11px;color:var(--soft);cursor:pointer;text-align:left}
+.agree input{appearance:none;-webkit-appearance:none;width:18px;height:18px;border-radius:5px;border:1px solid var(--chip);background:var(--card);flex:0 0 auto;display:grid;place-items:center;cursor:pointer;padding:0;min-width:0}
+.agree input:checked{background:var(--orange);border-color:var(--orange)}
+.agree input:checked:after{content:"✓";color:var(--accText);font-size:11px;font-weight:700}
+.gbtns{display:flex;gap:10px;flex-wrap:wrap}
+.gbtns .btn{flex:1 1 150px;justify-content:center}
+.gnote{color:var(--dim);font-size:9px;letter-spacing:.06em;margin-top:14px;line-height:1.6}
+body.gated{overflow:hidden}
+
 /* ---------- theme picker ---------- */
 .pop{position:absolute;z-index:65;background:var(--panel);border:1px solid var(--chip);border-radius:16px;padding:8px;box-shadow:0 18px 60px rgba(0,0,0,.5);display:none;min-width:210px}
 .pop.on{display:block}
@@ -432,33 +466,63 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
 </style>
 </head>
 <body>
+
+<div class="gate" id="gate" hidden>
+  <div class="gbox">
+    <svg class="logo" width="64" height="64" viewBox="0 0 40 40" role="img" aria-label="Mint Radar"><defs><linearGradient id="mrs2" x1="0" y1="0" x2="1" y2="0.6"><stop offset="0" stop-color="var(--orange)" stop-opacity=".6"/><stop offset="1" stop-color="var(--orange)" stop-opacity="0"/></linearGradient></defs><circle cx="20" cy="20" r="18.2" fill="none" stroke="currentColor" stroke-opacity=".26" stroke-width="1.4"/><circle cx="20" cy="20" r="12.6" fill="none" stroke="currentColor" stroke-opacity=".18" stroke-width="1.1"/><circle cx="20" cy="20" r="7"    fill="none" stroke="currentColor" stroke-opacity=".14" stroke-width="1"/><path class="sweep" d="M20 20 L20 1.8 A18.2 18.2 0 0 1 35.8 11 Z" fill="url(#mrs2)"/><path d="M20 12.4 L26 20 L20 27.6 L14 20 Z" fill="var(--orange)"/><path d="M20 12.4 L26 20 L20 20 Z" fill="var(--accText)" fill-opacity=".22"/><circle cx="30.6" cy="12.2" r="2.5" fill="var(--orange)"/><circle cx="30.6" cy="12.2" r="5" fill="var(--orange)" fill-opacity=".18"/></svg>
+    <h1>MINT RADAR</h1>
+    <p class="tag">Live mint radar for EVM chains and Solana — assembled from public marketplace APIs and on-chain data.</p>
+    <div class="terms">
+      <h4>Terms of use &amp; disclaimer</h4>
+      <ul>
+        <li><b>What this is.</b> Mint Radar is an information tool. Everything it shows is polled from public marketplace APIs and public blockchain data and is presented as received.</li>
+        <li><b>We do not curate it.</b> We do not deliberately add, remove, hide, re-rank or alter any mint, collection or figure, and no one can pay for placement. What the sources return is what you see.</li>
+        <li><b>Data can be wrong.</b> Sources can be delayed, incomplete, rate-limited, cached or simply mistaken, and a mint's price, supply, phases or timing can change or be cancelled at any moment. Always verify on the project's own site and on-chain before acting.</li>
+        <li><b>Not financial advice.</b> Nothing here is a recommendation to mint, buy, hold or sell anything. Signals, scores and rankings are heuristics, not judgements of quality or safety.</li>
+        <li><b>You act for yourself.</b> You alone are responsible for your transactions, the contracts you interact with and the fees you pay.</li>
+        <li><b>No custody, no keys.</b> The tool never asks for a private key or seed phrase, never takes custody of assets, and never builds, signs or sends a transaction for you. Signing in or connecting a wallet shares only a public address.</li>
+        <li><b>No warranty, no liability.</b> The tool is provided “as is”, without warranty of any kind. To the fullest extent permitted by law, its operators and contributors are not liable for any loss or damage — financial or otherwise — arising from its use, including missed mints, downtime, or inaccurate, stale or missing data.</li>
+        <li><b>Third parties.</b> Links to marketplaces, projects and social accounts are provided for convenience; we neither control nor endorse them.</li>
+        <li><b>Your jurisdiction.</b> Use the tool only where it is lawful for you to do so. These terms may be updated; continued use means you accept the current version.</li>
+      </ul>
+    </div>
+    <label class="agree"><input type="checkbox" id="agree"> I have read and accept these terms, and I understand that I use Mint Radar at my own risk.</label>
+    <div class="gbtns">
+      <button class="btn" id="accept" type="button" disabled>ACCEPT &amp; CONTINUE</button>
+      <button class="btn ghost" id="decline" type="button">DECLINE</button>
+    </div>
+    <div class="gnote" id="gnote">Your choice is stored in this browser only. Re-read any time with ⌘K → “View terms”.</div>
+  </div>
+</div>
+
 <div class="wrap">
 
   <div class="top">
-    <div class="brand"><b>◈</b>MINT RADAR <small>ETH · BASE · SOL</small></div>
+    <div class="brand"><svg class="logo" width="34" height="34" viewBox="0 0 40 40" role="img" aria-label="Mint Radar"><defs><linearGradient id="mrs1" x1="0" y1="0" x2="1" y2="0.6"><stop offset="0" stop-color="var(--orange)" stop-opacity=".6"/><stop offset="1" stop-color="var(--orange)" stop-opacity="0"/></linearGradient></defs><circle cx="20" cy="20" r="18.2" fill="none" stroke="currentColor" stroke-opacity=".26" stroke-width="1.4"/><circle cx="20" cy="20" r="12.6" fill="none" stroke="currentColor" stroke-opacity=".18" stroke-width="1.1"/><circle cx="20" cy="20" r="7"    fill="none" stroke="currentColor" stroke-opacity=".14" stroke-width="1"/><path class="sweep" d="M20 20 L20 1.8 A18.2 18.2 0 0 1 35.8 11 Z" fill="url(#mrs1)"/><path d="M20 12.4 L26 20 L20 27.6 L14 20 Z" fill="var(--orange)"/><path d="M20 12.4 L26 20 L20 20 Z" fill="var(--accText)" fill-opacity=".22"/><circle cx="30.6" cy="12.2" r="2.5" fill="var(--orange)"/><circle cx="30.6" cy="12.2" r="5" fill="var(--orange)" fill-opacity=".18"/></svg><span class="wm"><b>MINT RADAR</b><small>ETH · BASE · SOL</small></span></div>
     <div class="forms">
       <form id="scan">
-        <input id="addr" placeholder="wallet(s) — 0x… (OpenSea) or Solana base58 (Magic Eden), comma-separated for several" autocomplete="off" spellcheck="false">
+        <input id="addr" placeholder="wallet(s) — 0x… for EVM or base58 for Solana, comma-separated for several" autocomplete="off" spellcheck="false">
         <select id="chains" aria-label="Chains">
           <option value="">Auto-detect</option>
           <option value="ethereum">Ethereum</option>
           <option value="base">Base</option>
           <option value="ethereum,base">ETH + Base</option>
-          <option value="solana">Solana (Magic Eden)</option>
+          <option value="solana">Solana</option>
         </select>
         <button id="go" class="btn" type="submit">SCAN</button>
         <button id="calbtn" class="btn ghost" type="button">CALENDARS</button>
+        <button id="tgbtn" class="btn ghost" type="button" title="Telegram alerts">🔔 TELEGRAM</button>
         <button id="signin" class="btn ghost" type="button" hidden>SIGN IN</button>
       </form>
       <form id="one">
-        <input id="slug" placeholder="or one drop: OpenSea / Magic Eden URL or slug" autocomplete="off" spellcheck="false">
+        <input id="slug" placeholder="or one drop: paste a collection URL or slug" autocomplete="off" spellcheck="false">
         <button id="go1" class="btn ghost" type="submit">CHECK</button>
       </form>
     </div>
   </div>
 
   <div class="panel" id="panel">
-    <h2><span class="tt">Your radar</span><em id="elig">Paste an EVM address to scan OpenSea drops, or a Solana address to scan Magic Eden — launchpad mints, your NFTs, trending collections. Nothing is signed or sent; only public APIs are read.</em>
+    <h2><span class="tt">Your radar</span><em id="elig">Paste an EVM address to scan drops you can mint, or a Solana address for launchpad mints, your NFTs and trending collections. Nothing is signed or sent — only public APIs and on-chain data are read.</em>
       <button class="toggle" id="fold" type="button">HIDE ▲</button></h2>
     <div class="chips" id="chips"></div>
   </div>
@@ -476,7 +540,7 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
   </div>
 
   <div class="panel" id="actpanel" hidden>
-    <h2><span class="tt">Recent activity</span><em id="actmeta">your last trades, listings and bids on Magic Eden</em>
+    <h2><span class="tt">Recent activity</span><em id="actmeta">your last trades, listings and bids</em>
       <button class="toggle" id="actfold" type="button">HIDE &#9650;</button></h2>
     <div class="acts" id="acts"></div>
   </div>
@@ -514,7 +578,6 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
     <button class="pill" id="dense" type="button" title="Smaller circles, tighter grid">DENSE</button>
     <button class="pill" id="sound" type="button" title="Beep when a phase opens">🔇 SOUND</button>
     <button class="pill" id="sigf" type="button" title="Hide COLD-signal projects (no socials, no community)">HOT+ ONLY</button>
-    <a class="pill tg" id="tgpill" href="#" target="_blank" rel="noopener" hidden title="Telegram alerts">🔔 ALERTS</a>
     <button class="pill" id="layoutbtn" type="button" title="Drag circles to rearrange them">⠿ ARRANGE</button>
     <button class="pill" id="themebtn" type="button" title="Colour theme">◐ THEME</button>
     <button class="pill" id="palbtn" type="button" title="Command palette">⌘K</button>
@@ -532,20 +595,10 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
     <div id="ocbody"></div>
   </div>
 
-  <div class="legend" id="legend" hidden>
-    <span><i style="background:var(--hi);box-shadow:inset 0 0 0 1px var(--orange);border-radius:3px"></i>Orange background = a scanned wallet is on this allowlist and can mint it now</span>
-    <span><i style="background:var(--orange)"></i>Orange ring: yours — eligible stage, NFTs you hold, launchpad minting now</span>
-    <span><i style="background:var(--soft)"></i>Public / market: open to anyone, trending, upcoming launches</span>
-    <span><i style="background:var(--chip)"></i>Not open yet / closed / not eligible</span>
-    <span>Ring fill = mint progress · Solana holdings: share of portfolio · Trending: rank</span>
-  </div>
-  <p class="note" id="note" hidden>
-    OpenSea can only confirm eligibility for a stage that is currently open, so future allowlist phases show “?” until they start — this page re-checks each drop the moment one of its phases opens, so leave the tab open.<br>
-    Magic Eden's launchpad has no allowlist check API: launches show price, supply, start time and — once launched — the secondary-market floor, so you can see whether a mint is trading above or below its mint price. Tap any circle for details.
-  </p>
 </div>
 
 <div class="pop" id="themepop"></div>
+<div class="pop" id="tgpop"></div>
 <div class="pop" id="acctpop"></div>
 <div class="pal" id="pal" aria-hidden="true"><div class="box">
   <input id="palin" placeholder="Search a collection, paste an address or URL, or type a command…" autocomplete="off" spellcheck="false">
@@ -554,7 +607,7 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
 </div></div>
 <section class="cal" id="cal" aria-hidden="true">
   <div class="head">
-    <h3><b>▦</b>CALENDARS</h3><em id="calvmeta">upcoming mints from Magic Eden and OpenSea, grouped by chain</em>
+    <h3><b>▦</b>CALENDARS</h3><em id="calvmeta">upcoming mints from every source, grouped by chain</em>
     <span class="calctl" style="margin-left:0">
       <button class="pill on" data-ch="0" type="button">ALL</button>
       <button class="pill" data-ch="1" type="button">24H</button>
@@ -635,7 +688,7 @@ const tgLink = (id) => TGCFG.enabled ? `https://t.me/${TGCFG.bot}?start=${btoa(u
 let MODE = "evm";              // evm | sol — what the last scan was
 let ROWS = new Map();          // slug -> /api/check result (OpenSea)
 const HOLD = new Map();        // slug -> holdings (OpenSea)
-const ME = { launchpad: [], wallet: null, trending: [], collections: new Map() };   // Magic Eden
+const ME = { launchpad: [], wallet: null, trending: [], collections: new Map() };   // Solana marketplace
 const CHAIN_MINTS = { list: [], disabled: false, at: 0 };                            // Solana on-chain (Candy Machine via Helius)
 const PRICES = { sol: null, eth: null, at: 0 };
 let VIEW = "bubbles";
@@ -729,7 +782,7 @@ const STATUS_META = {
   live:         { label: "Minting now",           cls: "sol", order: 3 },
   upcoming:     { label: "Upcoming",              cls: "",    order: 4 },
   holding:      { label: "Your NFTs",             cls: "sol", order: 5 },
-  trending:     { label: "Trending on Magic Eden",cls: "sol", order: 6 },
+  trending:     { label: "Trending",cls: "sol", order: 6 },
   recent:       { label: "Recent launches",       cls: "sol", order: 7 },
   minted:       { label: "Minted",                cls: "you", order: 8 },
   missed:       { label: "Missed",                cls: "",    order: 9 },
@@ -888,9 +941,9 @@ function itemLinks(it) {
   if (L.telegram) out.push({ k: "tg", url: L.telegram, title: "Telegram", text: "TG" });
   // marketplace / mint page
   if (it.kind === "osdrop") out.push({ k: "mkt", url: it.url, title: "OpenSea", text: "OS" });
-  else if (it.kind === "launch") out.push({ k: "mkt", url: it.url, title: "Magic Eden Launchpad", text: "ME" });
-  else if (it.kind === "cmmint") out.push({ k: "mkt", url: it.src.collectionUrl || it.url, title: "Collection on Magic Eden", text: "ME" });
-  else out.push({ k: "mkt", url: it.url, title: "Magic Eden", text: "ME" });
+  else if (it.kind === "launch") out.push({ k: "mkt", url: it.url, title: "Launchpad", text: "ME" });
+  else if (it.kind === "cmmint") out.push({ k: "mkt", url: it.src.collectionUrl || it.url, title: "Collection page", text: "ME" });
+  else out.push({ k: "mkt", url: it.url, title: "Marketplace", text: "↗" });
   return out.filter((l) => l.url && l.url !== "#");
 }
 function linkBubbles(it) {
@@ -899,7 +952,7 @@ function linkBubbles(it) {
   return `<span class="lks">${ls.map((l) => `<a class="lk ${l.k}" href="${esc(l.url)}" target="_blank" rel="noopener" title="${esc(l.title)}" aria-label="${esc(l.title)}">${ICONS[l.k] || esc(l.text || l.k.toUpperCase())}</a>`).join("")}</span>`;
 }
 
-const SRC_NAME = { os: "OpenSea", me: "Magic Eden", oc: "On-chain (Candy Machine)" };
+const SRC_NAME = { os: "OpenSea", me: "Marketplace", oc: "On-chain (Candy Machine)" };
 // A scanned wallet is confirmed on an allowlist stage that's open right now.
 const isEligibleNow = (it) => it.kind === "osdrop" && it.status === "eligible" && !it.src.looksPublic;
 const sigChip = (it) => it.signal ? `<span class="sig ${it.signal.tier.toLowerCase()}" title="Signal ${it.signal.score}/100 · ${esc((it.signal.why || []).join(", ") || "no signals")}">${esc(it.signal.tier)}${it.signal.discord?.members ? ` · ${fmtK(it.signal.discord.members)}` : ""}</span>` : "";
@@ -1104,7 +1157,7 @@ function renderChips() {
     const w = ME.wallet;
     $("elig").innerHTML = `${w.wallets ? `<b style="color:var(--soft)">${w.wallets.length} wallets</b>` : esc(short(ADDRESS))} · <b style="color:var(--orange)">${w.nfts}${w.more ? "+" : ""}</b> NFTs across ${w.collections.length} collections · est. <b style="color:var(--orange)">${esc(solf(w.portfolio.valueSol))}</b> at floor${w.portfolio.unpricedCollections ? ` (${w.portfolio.unpricedCollections} unpriced)` : ""}${w.portfolio.escrowSol ? ` · ${esc(solf(w.portfolio.escrowSol))} in ME escrow` : ""} · ${ME.launchpad.filter((x) => x.status === "live").length} launchpads minting · ${ME.launchpad.filter((x) => x.status === "upcoming").length} upcoming`;
   } else if (MODE === "sol") {
-    $("elig").innerHTML = `Magic Eden launchpad · <b style="color:var(--orange)">${ME.launchpad.filter((x) => x.status === "live").length}</b> minting now · ${ME.launchpad.filter((x) => x.status === "upcoming").length} upcoming · ${ME.trending.length} trending collections. Add a Solana address to see your NFTs and activity.`;
+    $("elig").innerHTML = `Launchpad · <b style="color:var(--orange)">${ME.launchpad.filter((x) => x.status === "live").length}</b> minting now · ${ME.launchpad.filter((x) => x.status === "upcoming").length} upcoming · ${ME.trending.length} trending collections. Add a Solana address to see your NFTs and activity.`;
   } else if (ROWS.size) {
     const eligible = [...ROWS.values()].filter((d) => d.status === "eligible" && !d.looksPublic).length;
     const pub = [...ROWS.values()].filter((d) => d.status === "eligible" && d.looksPublic).length;
@@ -1136,7 +1189,7 @@ function renderTimeline() {
   }
   for (const l of ME.launchpad) {
     if (l.status !== "upcoming" || !l.launchAt) continue;
-    all.push({ id: "me:lp:" + l.symbol, name: l.name, at: l.launchAt, cat: "LAUNCH", cls: "sol", mine: false, meta: `${solf(l.price)}${l.size ? ` · ${l.size} supply` : ""}`, tail: "magic eden" });
+    all.push({ id: "me:lp:" + l.symbol, name: l.name, at: l.launchAt, cat: "LAUNCH", cls: "sol", mine: false, meta: `${solf(l.price)}${l.size ? ` · ${l.size} supply` : ""}`, tail: "launchpad" });
   }
   all.sort((a, b) => a.at - b.at);
   if (!all.length) { $("calpanel").hidden = true; return; }
@@ -1214,7 +1267,7 @@ function sheetHtml(it) {
     const held = ME.wallet?.collections.find((c) => c.symbol === l.symbol);
     const badge = `<span class="badge ${it.tag.c || "d"}">${esc(it.tag.t)}</span>`;
     const vsMint = l.floor != null && l.price ? ((l.floor / l.price - 1) * 100) : null;
-    return head(badge, `SOL · Magic Eden Launchpad${l.featured ? " · featured" : ""}`)
+    return head(badge, `SOL · Launchpad${l.featured ? " · featured" : ""}`)
       + kv([
         ["Mint price", withUsd(esc(solf(l.price)), solUsd(l.price)), "sol"],
         ["Supply", esc(l.size ?? "—")],
@@ -1262,11 +1315,11 @@ function sheetHtml(it) {
       ])
       + (c.categories?.length ? `<div class="cats">${c.categories.map((x) => `<span>${esc(catLabel(x))}</span>`).join("")}</div>` : "")
       + (c.items?.length ? `<h4>Your items</h4><div class="mini">${c.items.map((n) => `<a href="${esc(n.url || "#")}" target="_blank" rel="noopener" title="${esc(n.name)}">${n.image ? `<img src="${esc(n.image)}" alt="" loading="lazy">` : ""}${n.listed ? `<span class="lp">${esc(solf(n.price))}</span>` : ""}</a>`).join("")}${c.count > c.items.length ? `<div style="display:grid;place-items:center;color:var(--muted);font-size:10px">+${c.count - c.items.length}</div>` : ""}</div>` : "")
-      + `<div class="foot"><a class="pri sol" href="${esc(c.url)}" target="_blank" rel="noopener">MAGIC EDEN ↗</a><button data-detail="${esc(c.symbol)}" type="button">LISTINGS &amp; SALES</button></div>`;
+      + `<div class="foot"><a class="pri sol" href="${esc(c.url)}" target="_blank" rel="noopener">MARKETPLACE ↗</a><button data-detail="${esc(c.symbol)}" type="button">LISTINGS &amp; SALES</button></div>`;
   }
   // trending / checked collection
   const t = it.src;
-  return head(`<span class="badge ${it.tag.c || "d"}">${esc(it.tag.t)}</span>`, `SOL · Magic Eden${t.badged ? " · ✔ verified" : ""}${t.hasCNFTs ? " · cNFTs" : ""}`)
+  return head(`<span class="badge ${it.tag.c || "d"}">${esc(it.tag.t)}</span>`, `SOL · marketplace${t.badged ? " · ✔ verified" : ""}${t.hasCNFTs ? " · cNFTs" : ""}`)
     + kv([
       ["Floor", esc(solf(t.floor)), "sol"],
       t.listed != null ? ["Listed", esc(t.listed)] : null,
@@ -1279,7 +1332,7 @@ function sheetHtml(it) {
     + (t.description ? `<p class="desc">${esc(t.description)}</p>` : "")
     + (t.cheapest?.length ? `<h4>Cheapest listings</h4><div class="mini">${t.cheapest.map((n) => `<a href="${esc(n.url || "#")}" target="_blank" rel="noopener" title="${esc(n.name || "")}">${n.image ? `<img src="${esc(n.image)}" alt="" loading="lazy">` : ""}<span class="lp">${esc(solf(n.price))}</span></a>`).join("")}</div>` : "")
     + (t.sales?.length ? `<h4>Latest sales</h4><div class="sales">${t.sales.slice(0, 6).map((s) => `<div><span>${esc(solf(s.price))}</span><span>${esc(short(s.buyer))} · ${esc(ago(s.at))}</span></div>`).join("")}</div>` : "")
-    + `<div class="foot"><a class="pri sol" href="${esc(t.url)}" target="_blank" rel="noopener">MAGIC EDEN ↗</a>${t.cheapest ? "" : `<button data-detail="${esc(t.symbol)}" type="button">LISTINGS &amp; SALES</button>`}${t.twitter ? `<a href="${esc(t.twitter)}" target="_blank" rel="noopener">X ↗</a>` : ""}</div>`;
+    + `<div class="foot"><a class="pri sol" href="${esc(t.url)}" target="_blank" rel="noopener">MARKETPLACE ↗</a>${t.cheapest ? "" : `<button data-detail="${esc(t.symbol)}" type="button">LISTINGS &amp; SALES</button>`}${t.twitter ? `<a href="${esc(t.twitter)}" target="_blank" rel="noopener">X ↗</a>` : ""}</div>`;
 }
 function openSheet(id) {
   const it = ITEMS.get(id); if (!it) return;
@@ -1345,7 +1398,7 @@ async function checkOne(address, slug) {
 }
 
 /* ---------- scans ---------- */
-function showUi() { $("bar").hidden = false; $("legend").hidden = false; $("note").hidden = false; }
+function showUi() { $("bar").hidden = false; }
 function setMode(m) { MODE = m; FILTER = "all"; renderTabs(); }
 const fetchJson = async (url) => { const r = await fetch(url); const j = await r.json(); if (!r.ok || j.error) throw new Error(j.error || r.statusText); return j; };
 
@@ -1426,7 +1479,7 @@ function mergeWallets(ws) {
 async function scanSol(address) {
   ME.launchpad = []; ME.trending = []; ME.wallet = null; ME.collections.clear();
   const steps = [];
-  $("status").textContent = address ? "Reading Magic Eden: launchpad, your NFTs, trending…" : "Reading Magic Eden launchpad and trending collections…";
+  $("status").textContent = address ? "Reading Solana: launchpad, your NFTs, trending…" : "Reading the launchpad and trending collections…";
   $("pbar").firstElementChild.style.width = "10%";
   startTicker();
   const jobs = [
@@ -1439,7 +1492,7 @@ async function scanSol(address) {
   const failed = results.filter((r) => r.status === "rejected").map((r) => r.reason.message);
   $("pbar").hidden = true;
   if (failed.length === results.length) throw new Error(failed[0]);
-  $("status").textContent = `Magic Eden · ${steps.join(" · ")}${failed.length ? ` · ⚠ ${failed[0]}` : ""}`;
+  $("status").textContent = `Solana · ${steps.join(" · ")}${failed.length ? ` · ⚠ ${failed[0]}` : ""}`;
   render();
 }
 
@@ -1449,7 +1502,7 @@ $("scan").addEventListener("submit", async (e) => {
   const chains = $("chains").value;
   const allEvm = ADDRESSES.length && ADDRESSES.every(isEvm), allSol = ADDRESSES.length && ADDRESSES.every(isSol);
   const sol = chains === "solana" || (!chains && allSol) || (allSol && !allEvm);
-  if (!sol && !allEvm) { $("status").textContent = ADDRESSES.length > 1 ? "Mix of address types — scan EVM (0x…) wallets and Solana wallets separately." : "Enter a 0x address (OpenSea) or a Solana address (Magic Eden), or pick Solana to browse the launchpad without one."; return; }
+  if (!sol && !allEvm) { $("status").textContent = ADDRESSES.length > 1 ? "Mix of address types — scan EVM (0x…) wallets and Solana wallets separately." : "Enter a 0x address for EVM drops or a base58 address for Solana, or pick Solana to browse the launchpad without one."; return; }
   if (sol && ADDRESS && !allSol) { $("status").textContent = "Those aren't all Solana addresses."; return; }
   showUi(); closeSheet(); QUIET_UNTIL = Date.now() + 20000;
   $("go").disabled = true; $("pbar").hidden = false; $("pbar").firstElementChild.style.width = "0";
@@ -1473,7 +1526,7 @@ $("one").addEventListener("submit", async (e) => {
     if (me || (!os && isSol(ADDRESS)) || (!os && $("chains").value === "solana")) {
       const symbol = (me ? me[1] : raw).toLowerCase();
       if (MODE !== "sol") setMode("sol");
-      $("status").textContent = `Reading ${symbol} on Magic Eden…`;
+      $("status").textContent = `Reading ${symbol}…`;
       const c = await fetchJson(`/api/me_collection?symbol=${encodeURIComponent(symbol)}${isSol(ADDRESS) ? `&address=${encodeURIComponent(ADDRESS)}` : ""}`);
       ME.collections.set(c.symbol, c);
       render(); openSheet("me:cx:" + c.symbol);
@@ -1586,7 +1639,7 @@ async function loadCalendars(force) {
   CALV.errors = [];
   const [os, me] = await Promise.allSettled([fetchJson("/api/drops"), fetchJson("/api/me_launchpad?days=7"), loadChainMints()]);
   if (os.status === "fulfilled") CALV.os = os.value.drops; else CALV.errors.push("OpenSea: " + os.reason.message);
-  if (me.status === "fulfilled") { CALV.me = me.value.drops; ME.launchpad = me.value.drops; } else CALV.errors.push("Magic Eden: " + me.reason.message);
+  if (me.status === "fulfilled") { CALV.me = me.value.drops; ME.launchpad = me.value.drops; } else CALV.errors.push("Launchpad: " + me.reason.message);
   CALV.at = Date.now();
 }
 function calRows() {
@@ -1641,15 +1694,15 @@ function renderCalendars() {
     const me = list.filter((r) => r.src === "magiceden"), os = list.filter((r) => r.src === "opensea"), oc = list.filter((r) => r.src === "onchain");
     return `<div class="chainh"><b>${esc(CHAIN_ABBR(c))}</b> ${esc(CHAIN_NAME(c))} <span>${list.length}</span></div>`
       + (c === "solana" ? block("On-chain — Candy Machine mints", CHAIN_MINTS.disabled ? "off — set HELIUS_API_KEY or QUICKNODE_RPC_URL in Vercel to read every Solana mint straight from the chain" : `${oc.length} live or scheduled · any launchpad`, oc) : "")
-      + (c === "solana" || me.length ? block("Magic Eden — upcoming mints", `${me.length} launchpad mint${me.length === 1 ? "" : "s"}`, me) : "")
+      + (c === "solana" || me.length ? block("Launchpad — upcoming mints", `${me.length} launchpad mint${me.length === 1 ? "" : "s"}`, me) : "")
       + (c === "solana" ? `<div class="src"><h4><span>LaunchMyNFT — live mints</span><i>no calendar API — mints go live on deploy</i></h4><div class="tl"><a class="row" href="#" data-lm-open="1"><span class="when">LIVE</span><span class="ph al">EXPLORE</span><span class="nm">See what's minting right now on LaunchMyNFT <span class="meta2">embedded on the main page</span></span><span class="meta2 tail">open widget ↗</span></a></div></div>` : "")
-      + (c !== "solana" || os.length ? block("OpenSea — upcoming mints", `${os.length} drop${os.length === 1 ? "" : "s"} · featured, upcoming and live calendars`, os) : "");
+      + (c !== "solana" || os.length ? block("EVM drops — upcoming mints", `${os.length} drop${os.length === 1 ? "" : "s"} · featured, upcoming and live calendars`, os) : "");
   }).join("") : `<div class="empty3">${CALV.errors.length ? "Couldn't load calendars." : "Nothing scheduled."}</div>`;
 }
 async function openCalendars() {
   $("cal").classList.add("on"); $("cal").setAttribute("aria-hidden", "false"); document.body.style.overflow = "hidden";
   startTicker();
-  if (!CALV.at) $("calbody").innerHTML = `<div class="empty3">Loading OpenSea and Magic Eden calendars…</div>`;
+  if (!CALV.at) $("calbody").innerHTML = `<div class="empty3">Loading calendars…</div>`;
   await loadCalendars(false); renderCalendars();
 }
 function closeCalendars() { $("cal").classList.remove("on"); $("cal").setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
@@ -1691,11 +1744,56 @@ $("out").addEventListener("click", (e) => {
   const tr = e.target.closest("tr.row"); if (tr) openSheet(tr.dataset.id);
 });
 $("sigf").addEventListener("click", () => { SIGF = !SIGF; $("sigf").classList.toggle("on", SIGF); render(); });
-fetchJson("/api/alerts_config").then((c) => { TGCFG.enabled = !!c.enabled; TGCFG.bot = c.bot; if (TGCFG.enabled) { $("tgpill").hidden = false; $("tgpill").href = `https://t.me/${TGCFG.bot}`; if (ITEMS.size) render(); } }).catch(() => {});
+fetchJson("/api/alerts_config").then((c) => { TGCFG.enabled = !!c.enabled; TGCFG.bot = c.bot; if (TGCFG.enabled && ITEMS.size) render(); }).catch(() => {});
 $("dense").addEventListener("click", () => { const on = document.body.classList.toggle("dense"); $("dense").classList.toggle("on", on); try { localStorage.setItem("mintradar:dense", on ? "1" : ""); } catch {} });
 try { if (localStorage.getItem("mintradar:dense")) { document.body.classList.add("dense"); $("dense").classList.add("on"); } } catch {}
 $("sound").addEventListener("click", () => { SOUND = !SOUND; $("sound").classList.toggle("on", SOUND); $("sound").textContent = SOUND ? "🔔 SOUND" : "🔇 SOUND"; if (SOUND) beep(); });
 $("feed").addEventListener("click", (e) => { const ev = e.target.closest(".ev[data-id]"); if (ev && ITEMS.has(ev.dataset.id)) openSheet(ev.dataset.id); });
+
+/* ---------- license gate ---------- */
+const LIC_KEY = "mintradar:terms:v1";
+let ACCEPTED = false;
+try { ACCEPTED = !!localStorage.getItem(LIC_KEY); } catch { ACCEPTED = true; }   // private mode: don't trap the user
+function openGate(reread) {
+  $("gate").hidden = false; document.body.classList.add("gated");
+  $("agree").checked = !!reread; $("accept").disabled = !reread;
+  $("accept").textContent = reread ? "CLOSE" : "ACCEPT & CONTINUE";
+  $("decline").hidden = !!reread;
+  $("gate").dataset.reread = reread ? "1" : "";
+}
+function closeGate() { $("gate").hidden = true; document.body.classList.remove("gated"); }
+$("agree").addEventListener("change", () => { $("accept").disabled = !$("agree").checked; });
+$("accept").addEventListener("click", () => {
+  const reread = $("gate").dataset.reread === "1";
+  if (!reread) { try { localStorage.setItem(LIC_KEY, new Date().toISOString()); } catch {} ACCEPTED = true; }
+  closeGate();
+  if (!reread) boot();
+});
+$("decline").addEventListener("click", () => {
+  $("gnote").innerHTML = `<b style="color:var(--orange)">You need to accept the terms to use Mint Radar.</b> Nothing is loaded until you do.`;
+  $("agree").checked = false; $("accept").disabled = true;
+});
+
+/* ---------- Telegram alerts button ---------- */
+function renderTgPop() {
+  const p = $("tgpop");
+  const cfg = TGCFG;
+  const addr = ADDRESSES[0] || "";
+  if (!cfg.enabled) {
+    p.innerHTML = `<div class="who">Telegram alerts are not switched on for this deployment.<small>The operator enables them by setting TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME, the Upstash Redis keys and ALERTS_SECRET in Vercel — see the README.</small></div>`;
+    return;
+  }
+  p.innerHTML = `<div class="who">Get pinged when a mint opens<small>10 minutes before a phase opens, the moment it opens, on new on-chain deployments, and when a wallet becomes eligible.</small></div>
+    <a class="row2" href="https://t.me/${esc(cfg.bot)}" target="_blank" rel="noopener"><span class="sw2"><i style="background:var(--orange)"></i></span><b>OPEN THE BOT &amp; START</b></a>
+    ${addr && isEvm(addr) ? `<a class="row2" href="${esc(tgLink("wallet:" + addr.toLowerCase()))}" target="_blank" rel="noopener"><span class="sw2"><i style="background:var(--soft)"></i></span><b>ALERT ME: ${esc(short(addr))}</b></a>` : ""}
+    <hr><div class="note2">In the bot: <b>/watch</b> a mint · <b>/new</b> for every new on-chain deployment · <b>/wallet 0x…</b> for eligibility · <b>/list</b> to review. Every mint's detail sheet also has a 🔔 button that starts a watch in one tap.</div>`;
+}
+$("tgbtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const open = $("tgpop").classList.contains("on");
+  closePops(); if (open) return;
+  renderTgPop(); placePop($("tgpop"), $("tgbtn"));
+});
 
 /* ---------- sign in: Privy (Google + wallet) ----------
    The vanilla SDK is loaded from a CDN only when the user actually clicks sign in, so the
@@ -1861,7 +1959,7 @@ function placePop(pop, anchor) {
   pop.style.top = `${r.bottom + window.scrollY + 8}px`;
   pop.style.left = `${Math.max(12, Math.min(window.scrollX + r.right - w, window.scrollX + window.innerWidth - w - 12))}px`;
 }
-const closePops = () => { $("themepop").classList.remove("on"); $("acctpop").classList.remove("on"); };
+const closePops = () => { for (const id of ["themepop", "acctpop", "tgpop"]) $(id).classList.remove("on"); };
 $("themebtn").addEventListener("click", (e) => {
   e.stopPropagation();
   const open = $("themepop").classList.contains("on");
@@ -1871,7 +1969,7 @@ $("themepop").addEventListener("click", (e) => {
   const r = e.target.closest("[data-theme-id]"); if (!r) return;
   applyTheme(r.dataset.themeId); closePops();
 });
-document.addEventListener("click", (e) => { if (!e.target.closest(".pop,#themebtn,#signin")) closePops(); });
+document.addEventListener("click", (e) => { if (!e.target.closest(".pop,#themebtn,#signin,#tgbtn")) closePops(); });
 try { applyTheme(localStorage.getItem("mintradar:theme") || "ember", false); } catch { applyTheme("ember", false); }
 
 /* ---------- arrange: drag circles into your own order ---------- */
@@ -1952,18 +2050,20 @@ const COMMANDS = [
   { k: "PANEL", label: "Show / hide LaunchMyNFT widget", run: () => $("lmfold").click() },
   { k: "PANEL", label: "Show / hide Solana on-chain mints", run: () => $("ocfold").click() },
   { k: "LAYOUT", label: "Arrange circles (drag to reorder)", run: () => setLayout(!LAYOUT) },
+  { k: "LEGAL", label: "View terms of use & disclaimer", run: () => openGate(true) },
+  { k: "ALERTS", label: "Telegram alerts", run: () => $("tgbtn").click() },
   { k: "LAYOUT", label: "Reset layout to default order", run: () => { ORDER = []; saveOrder(); render(); $("status").textContent = "Layout reset to the default order."; } },
   ...THEMES.map((t) => ({ k: "THEME", label: `Theme: ${t.name.toLowerCase()}`, run: () => applyTheme(t.id) })),
 ];
 function palRender(q) {
   q = q.trim(); const ql = q.toLowerCase();
   const out = [];
-  if (isEvm(q)) out.push({ k: "SCAN", label: `Scan OpenSea drops for ${short(q)}`, run: () => { $("addr").value = q; $("chains").value = ""; $("scan").requestSubmit(); } });
-  else if (isSol(q)) out.push({ k: "SCAN", label: `Scan Magic Eden for ${short(q)}`, run: () => { $("addr").value = q; $("chains").value = ""; $("scan").requestSubmit(); } });
+  if (isEvm(q)) out.push({ k: "SCAN", label: `Scan EVM wallet ${short(q)}`, run: () => { $("addr").value = q; $("chains").value = ""; $("scan").requestSubmit(); } });
+  else if (isSol(q)) out.push({ k: "SCAN", label: `Scan Solana wallet ${short(q)}`, run: () => { $("addr").value = q; $("chains").value = ""; $("scan").requestSubmit(); } });
   else if (/opensea\.io\/collection\/|magiceden\.io\//i.test(q)) out.push({ k: "CHECK", label: `Check ${q.slice(0, 60)}`, run: () => { $("slug").value = q; $("one").requestSubmit(); } });
   for (const it of ITEMS.values()) if (!ql || it.name.toLowerCase().includes(ql)) out.push({ k: (STATUS_META[it.status]?.label || "item").split(" ")[0].toUpperCase(), label: it.name, sub: `${SRC_NAME[it.src_] || ""} · ${CHAIN_ABBR(it.chain)}`, image: it.image, run: () => openSheet(it.id) });
   for (const c of COMMANDS) if (!ql || c.label.toLowerCase().includes(ql)) out.push(c);
-  if (ql && !out.length) out.push({ k: "CHECK", label: `Check "${q}" as an OpenSea / Magic Eden slug`, run: () => { $("slug").value = q; $("one").requestSubmit(); } });
+  if (ql && !out.length) out.push({ k: "CHECK", label: `Check "${q}" as a collection slug`, run: () => { $("slug").value = q; $("one").requestSubmit(); } });
   PAL_ITEMS = out.slice(0, 40); PAL_IDX = 0;
   $("pallist").innerHTML = PAL_ITEMS.map((c, i) => `<div class="it${i === 0 ? " on" : ""}" data-i="${i}">${c.image ? `<img src="${esc(c.image)}" alt="">` : c.sub ? `<span class="ph2"></span>` : ""}<span class="k">${esc(c.k)}</span><span>${esc(c.label)}${c.sub ? ` <small>· ${esc(c.sub)}</small>` : ""}</span></div>`).join("");
 }
@@ -1999,18 +2099,21 @@ async function loadUpcoming() {
     ME.launchpad = r.drops; FRESH.me = Date.now();
     setMode("sol"); showUi(); startTicker(); render();
     const oc = CHAIN_MINTS.list.filter((m) => m.status === "live").length;
-    $("elig").innerHTML = `<b style="color:var(--orange)">${r.counts.live}</b> launchpad mint${r.counts.live === 1 ? "" : "s"} live · <b style="color:var(--soft)">${r.counts.upcoming}</b> upcoming on Magic Eden${CHAIN_MINTS.disabled ? " · on-chain radar off (set HELIUS_API_KEY or QUICKNODE_RPC_URL)" : oc ? ` · <b style="color:var(--soft)">${oc}</b> minting on-chain right now` : ""}. Paste a 0x address to scan OpenSea drops, or a Solana address to see your NFTs and activity.`;
-    $("status").textContent = `Magic Eden launchpad · ${r.counts.live} minting now · ${r.counts.upcoming} upcoming · ${r.counts.past} recent. Scan an address for more.`;
-  } catch (err) { $("status").textContent = "Couldn't load the Magic Eden launchpad: " + err.message; }
+    $("elig").innerHTML = `<b style="color:var(--orange)">${r.counts.live}</b> launchpad mint${r.counts.live === 1 ? "" : "s"} live · <b style="color:var(--soft)">${r.counts.upcoming}</b> upcoming${CHAIN_MINTS.disabled ? " · on-chain radar off (set HELIUS_API_KEY or QUICKNODE_RPC_URL)" : oc ? ` · <b style="color:var(--soft)">${oc}</b> minting on-chain right now` : ""}. Paste a 0x address to scan EVM drops, or a Solana address to see your NFTs and activity.`;
+    $("status").textContent = `Launchpad · ${r.counts.live} minting now · ${r.counts.upcoming} upcoming · ${r.counts.past} recent. Scan an address for more.`;
+  } catch (err) { $("status").textContent = "Couldn't load the Launchpad: " + err.message; }
 }
 
-// Deep link: ?address=…  or  ?sol=1 — otherwise show upcoming mints right away.
-try {
-  const q = new URLSearchParams(location.search);
-  if (q.get("address")) { $("addr").value = q.get("address"); $("scan").requestSubmit(); }
-  else if (q.get("sol")) { $("chains").value = "solana"; $("scan").requestSubmit(); }
-  else loadUpcoming();
-} catch { loadUpcoming(); }
+// Nothing is fetched until the terms are accepted.
+function boot() {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get("address")) { $("addr").value = q.get("address"); $("scan").requestSubmit(); }
+    else if (q.get("sol")) { $("chains").value = "solana"; $("scan").requestSubmit(); }
+    else loadUpcoming();
+  } catch { loadUpcoming(); }
+}
+if (ACCEPTED) boot(); else openGate(false);
 </script>
 </body>
 </html>

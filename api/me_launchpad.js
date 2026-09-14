@@ -13,7 +13,7 @@ async function loadAll() {
     const out = [];
     for (let offset = 0; offset < 2000; offset += 500) {
       const { ok, status, body } = await meFetch(`/launchpad/collections?offset=${offset}&limit=500`);
-      if (!ok) { if (!out.length) throw new Error(body.error || body.raw || `Magic Eden HTTP ${status}`); break; }
+      if (!ok) { if (!out.length) throw new Error(body.error || body.raw || `Marketplace HTTP ${status}`); break; }
       const list = Array.isArray(body) ? body : body.collections || [];
       out.push(...list);
       if (list.length < 500) break;
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
     ]);
     launched.forEach((d, i) => { if (stats[i]) { d.floor = stats[i].floor; d.listed = stats[i].listed; d.volume7d = stats[i].volume7d; } });
     withInfo.forEach((d, i) => { if (infos[i]) { d.categories = infos[i].categories; d.badged = infos[i].badged; d.links = infos[i].links; } });
-    const sigs = await mapLimit(withInfo, 4, (d) => signalFor({ links: d.links, image: d.image, verified: d.badged, verifiedLabel: "Magic Eden badge" }));
+    const sigs = await mapLimit(withInfo, 4, (d) => signalFor({ links: d.links, image: d.image, verified: d.badged, verifiedLabel: "marketplace verified" }));
     withInfo.forEach((d, i) => { d.signal = sigs[i] || null; });
 
     res.setHeader("cache-control", "s-maxage=120, stale-while-revalidate=600");

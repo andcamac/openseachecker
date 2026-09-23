@@ -376,6 +376,19 @@ requests per wallet. Three layers keep that under the ~4 req/s a standard key al
 3. **`/api/check` passes 429 through** instead of swallowing it. It used to record a rate-limited
    drop as `status: "skipped"` — a wrong answer presented as a real one. Now the browser retries it.
 
+**Let OpenSea say which chain a collection is on.** When `route=list` gets a `collection`, it first
+calls `/collections/{slug}` and reads `contracts[0].chain`, then queries only that chain. Two
+requests, an exact answer, and — critically — it finds collections on chains that aren't in
+`EVM_CHAINS` at all. The response reports `resolvedChain` and the panel says so, because the chain
+it used may not be the one the picker is showing and silently overriding the user would be worse.
+
+That lookup exists because of a real miss: a wallet holding 20 of **The Puyo Paradox** came back
+empty. The collection is on **Robinhood chain**, and `EVM_CHAINS` listed only ethereum, base, matic,
+arbitrum, optimism, zora and blast — so even `chains=all` couldn't find it, while the drops radar
+showed it fine (it groups by whatever chain OpenSea reports, with no list of its own). The list now
+carries robinhood, abstract, ape_chain, ink and a dozen more. An identifier OpenSea doesn't know
+404s and is skipped, so erring wide costs nothing but a request.
+
 **Chains are opt-in.** `/api/nfts?route=list` scans **ethereum** alone unless you ask otherwise;
 `chains=all` opts into all seven. Scanning every chain is seven times the requests, and doing it by
 default is what tripped the limit in the first place. The picker in MY NFTS defaults to Ethereum,

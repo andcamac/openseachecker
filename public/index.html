@@ -647,12 +647,21 @@ select.vsearch{appearance:none;cursor:pointer;padding-right:26px;background-imag
   <div class="topline">
     <form id="scan">
       <input id="addr" placeholder="wallet — 0x… for EVM or base58 for Solana, comma-separated for several" autocomplete="off" spellcheck="false">
-      <select id="chains" aria-label="Chains">
-        <option value="">Auto-detect</option>
-        <option value="ethereum">Ethereum</option>
+      <select id="chains" aria-label="Chain to scan">
+        <option value="ethereum" selected>Ethereum</option>
         <option value="base">Base</option>
         <option value="ethereum,base">ETH + Base</option>
+        <option value="robinhood">Robinhood</option>
+        <option value="abstract">Abstract</option>
+        <option value="ape_chain">ApeChain</option>
+        <option value="ink">Ink</option>
+        <option value="matic">Polygon</option>
+        <option value="arbitrum">Arbitrum</option>
+        <option value="optimism">Optimism</option>
+        <option value="zora">Zora</option>
+        <option value="blast">Blast</option>
         <option value="solana">Solana</option>
+        <option value="">All chains — slower</option>
       </select>
       <button id="go" class="btn" type="submit">SCAN</button>
     </form>
@@ -787,11 +796,18 @@ select.vsearch{appearance:none;cursor:pointer;padding-right:26px;background-imag
       <option value="ethereum" selected>Ethereum</option>
       <option value="base">Base</option>
       <option value="ethereum,base">ETH + Base</option>
+      <option value="robinhood">Robinhood</option>
+      <option value="abstract">Abstract</option>
+      <option value="ape_chain">ApeChain</option>
+      <option value="ink">Ink</option>
       <option value="matic">Polygon</option>
       <option value="arbitrum">Arbitrum</option>
       <option value="optimism">Optimism</option>
       <option value="zora">Zora</option>
       <option value="blast">Blast</option>
+      <option value="soneium">Soneium</option>
+      <option value="unichain">Unichain</option>
+      <option value="common">Top 5 EVM chains</option>
       <option value="all">All chains — slower</option>
     </select>
     <button class="btn" id="vgo" type="submit">SCAN</button>
@@ -2290,7 +2306,11 @@ async function vaultScan(addr, slugRaw) {
     VAULT.folded.clear();
     // Per-chain counts, so a chain returning nothing is visibly nothing rather than silently missing.
     const per = (r.byChain || []).filter((c) => c.count || c.error).map((c) => `${c.chain} ${c.count}${c.error ? " ⚠" : ""}${c.truncated ? "+" : ""}`);
-    const scope = r.scannedAll ? "every chain" : (r.chains || []).join(", ");
+    // When a collection was named, OpenSea told us its chain — say so, because it may not be
+    // the one the picker is showing, and silently overriding the user would be worse.
+    const scope = r.resolvedChain ? `${r.resolvedChain} (found via ${slug})`
+      : r.scannedAll ? "every chain"
+      : (r.chains || []).join(", ");
     $("vmeta").textContent = `${r.count} item${r.count === 1 ? "" : "s"} held by ${short(a)}`
       + (slug ? ` in ${slug}` : "")
       + (scope ? ` on ${scope}` : "")

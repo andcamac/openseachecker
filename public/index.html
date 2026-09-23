@@ -280,6 +280,99 @@ table.tv tr.elig:hover td{background:var(--hi2)}
 .panel.folded .lmnft{display:none}
 .lmnft-src{display:flex;gap:6px;flex-wrap:wrap}
 
+/* ================= RAIL SHELL =================
+   Destinations and set-once settings live on a 58px vertical rail, so the only
+   full-width thing above the grid is the scan line. Under 820px the rail becomes
+   a bottom tab bar, which is where thumbs already expect navigation. */
+.shell{display:flex;align-items:flex-start;max-width:1480px;margin:0 auto}
+.rail{position:sticky;top:0;flex:0 0 58px;width:58px;height:100vh;z-index:55;
+  background:var(--card);border-right:1px solid var(--chip);
+  display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0}
+.rbrand{display:grid;place-items:center;width:38px;height:38px;color:var(--text);margin-bottom:5px;flex:0 0 auto}
+.rgap{flex:1}
+.rico{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+  background:none;border:none;color:var(--muted);font-size:15px;line-height:1;cursor:pointer;
+  transition:background .14s,color .14s;flex:0 0 auto;position:relative}
+.rico:hover{background:var(--panel);color:var(--text)}
+.rico.on{background:var(--orange);color:var(--accText)}
+.rico[aria-expanded="true"]{background:var(--panel);color:var(--text)}
+.rico .dot{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--orange)}
+/* margin:0 auto from the old layout must go: an auto cross-axis margin cancels
+   align-items:stretch, so the column would size to its content and overflow. */
+.shell > .wrap{flex:1 1 auto;min-width:0;max-width:none;margin:0;width:100%;
+  padding:14px clamp(14px,2.4vw,22px) 80px}
+
+/* one line above the grid */
+.topline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.topline #scan{display:flex;gap:7px;align-items:center;flex:1 1 340px;min-width:240px}
+.topline #scan #addr{flex:1;min-width:120px}
+.topline #one{display:flex;gap:7px;align-items:center;flex:0 1 300px;min-width:200px}
+.topline #one #slug{flex:1;min-width:110px}
+.topline #viewseg{margin-left:auto;flex:0 0 auto}
+
+/* panels read as thin strips, not as four stacked headline blocks */
+.panel{background:transparent;padding:0;margin-bottom:9px}
+.panel > h2{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0;
+  background:var(--panel);border-radius:999px;padding:8px 12px;font-size:10px;font-weight:400}
+.panel > h2 .tt{font-size:9.5px;font-weight:700;letter-spacing:.1em;color:var(--text);
+  background:var(--card);padding:5px 10px;border-radius:999px;flex:0 0 auto;text-transform:uppercase}
+.panel > h2 em{font-style:normal;color:var(--muted);font-size:10px;line-height:1.5;flex:1;min-width:120px}
+.panel > h2 .calctl{margin-left:auto;display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.panel > h2 .toggle{flex:0 0 auto}
+.panel.folded > h2{margin-bottom:0}
+.panel > div{margin-top:9px}
+
+/* settings popover */
+.setpop{width:250px;padding:9px}
+.setpop h5{font-size:8px;letter-spacing:.14em;color:var(--dim);margin:7px 6px 6px;font-weight:700}
+.setpop h5:first-child{margin-top:2px}
+.setpop hr{border:none;border-top:1px solid var(--chip);margin:8px 3px}
+.setpop .pill{display:block;width:100%;text-align:left;margin-bottom:4px;padding:8px 11px;font-size:10px}
+.setpop .tog{display:flex;width:100%;margin:0;padding:7px 11px;font-size:9.5px}
+.setpop .setnote{font-size:9px;color:var(--dim);line-height:1.5;padding:2px 7px 4px}
+
+@media (max-width:820px){
+  .shell{flex-direction:column;align-items:stretch}
+  .rail{position:fixed;inset:auto 0 0 0;width:auto;height:auto;flex:0 0 auto;
+    flex-direction:row;justify-content:space-around;gap:0;
+    border-right:none;border-top:1px solid var(--chip);
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
+  .rbrand,.rgap{display:none}
+  .rico{width:42px;height:38px}
+  .shell > .wrap{padding-bottom:86px}
+  .topline #viewseg{margin-left:0}
+}
+@media (max-width:560px){
+  /* the address deserves the full line before the chain picker and button share the next */
+  .topline #scan{flex-wrap:wrap}
+  .topline #scan #addr{flex:1 1 100%;min-width:0}
+  .topline #scan #chains{flex:1 1 auto}
+  .topline #one{flex:1 1 100%}
+  .topline #viewseg{margin-left:0}
+}
+@media (max-width:420px){
+  .rico{width:36px;font-size:14px}
+}
+
+.rico .av{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;
+  background:var(--orange);color:var(--accText);font-size:10px;font-weight:700}
+.rico:has(.av){background:var(--panel)}
+
+/* Folded strips sit shoulder to shoulder; opening one gives it the full row. */
+.strips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:9px}
+.strips > .panel{margin-bottom:0;flex:1 1 100%;min-width:0}
+.strips > .panel.folded{flex:0 1 auto}
+.strips > .panel.folded > h2 em{display:none}
+.panel > h2 em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel > h2 .tt{text-transform:uppercase}
+
+/* Tighten the vertical rhythm now that the bars are fewer — the grid should start high. */
+.shell .ticker{margin-bottom:8px}
+.shell .bar{gap:7px;margin-bottom:6px}
+.shell .status{font-size:9.5px;padding:2px 2px 0;margin-bottom:2px}
+.shell #out{margin-top:4px}
+.shell .panel > h2 .toggle{font-size:8.5px;padding:5px 9px}
+
 /* ---------- live ticker ---------- */
 .ticker{display:flex;align-items:center;gap:10px;margin:0 0 10px;overflow:hidden;background:var(--panel);border-radius:999px;padding:6px 8px 6px 6px}
 .ticker .live{display:flex;align-items:center;gap:6px;background:var(--card);color:var(--orange);font-size:9px;font-weight:700;letter-spacing:.12em;padding:5px 10px;border-radius:999px;flex:0 0 auto}
@@ -455,6 +548,18 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
 .vc.on .tick{background:var(--orange);border-color:var(--orange);color:var(--accText)}
 .vc .cn{position:absolute;top:7px;right:7px;font-size:8px;letter-spacing:.08em;padding:2px 6px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff}
 .vc .st{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.6);color:#fff;font-size:9px;letter-spacing:.08em}
+.vgrp{margin:14px 0 0}
+.vgrp.folded .vgrid{display:none}
+.vgrp h4{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:7px 10px;background:var(--panel);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.04em}
+.vgrp h4 .gn{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vgrp h4 .gc{background:var(--chip);color:var(--soft);border-radius:999px;padding:2px 8px;font-size:9px;flex:0 0 auto}
+.vgrp h4 .gs{color:var(--orange);font-size:9px;font-weight:400;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vgrp h4 .gfold{background:none;border:none;color:var(--muted);font:inherit;font-size:11px;cursor:pointer;padding:0 2px;flex:0 0 auto}
+.vgrp h4 .pill.sm{font-size:8px;padding:4px 9px;flex:0 0 auto}
+#vgroup{background:var(--card);align-items:center;flex-wrap:wrap}
+#vgroup b{font-size:8px;letter-spacing:.1em;color:var(--dim);padding:0 6px 0 8px;font-weight:700}
+#vgroup .pill{font-size:8px;padding:4px 9px}
+.vwarn{background:var(--warm);color:var(--soft);border-radius:12px;padding:9px 12px;font-size:10px;line-height:1.5;margin:10px 0 0}
 .vbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 2px;padding:9px 10px;background:var(--panel);border-radius:14px;position:sticky;top:52px;z-index:2}
 .vbar .sp{flex:1;min-width:8px}
 .vbar .cnt{font-size:11px;color:var(--soft)}
@@ -521,39 +626,51 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
   </div>
 </div>
 
+<div class="shell">
+<nav class="rail" id="rail" aria-label="Sections">
+  <span class="rbrand" title="Mint Radar"><svg width="30" height="30" viewBox="0 0 40 40" role="img" aria-label="Mint Radar"><defs><linearGradient id="mrs1" x1="0" y1="0" x2="1" y2="0.6"><stop offset="0" stop-color="var(--orange)" stop-opacity=".6"/><stop offset="1" stop-color="var(--orange)" stop-opacity="0"/></linearGradient></defs><circle cx="20" cy="20" r="18.2" fill="none" stroke="currentColor" stroke-opacity=".26" stroke-width="1.4"/><circle cx="20" cy="20" r="12.6" fill="none" stroke="currentColor" stroke-opacity=".18" stroke-width="1.1"/><path class="sweep" d="M20 20 L20 1.8 A18.2 18.2 0 0 1 35.8 11 Z" fill="url(#mrs1)"/><path d="M20 12.4 L26 20 L20 27.6 L14 20 Z" fill="var(--orange)"/><circle cx="30.6" cy="12.2" r="2.5" fill="var(--orange)"/><circle cx="30.6" cy="12.2" r="5" fill="var(--orange)" fill-opacity=".18"/></svg></span>
+  <button class="rico on" data-go="top" type="button" title="Radar" aria-label="Radar">&#9673;</button>
+  <button class="rico" id="calbtn" type="button" title="Calendars" aria-label="Calendars">&#9638;</button>
+  <button class="rico" id="vaultbtn" type="button" title="My NFTs — browse and download your art" aria-label="My NFTs">&#11015;</button>
+  <button class="rico" data-go="lmpanel" type="button" title="LaunchMyNFT — live Solana mints" aria-label="LaunchMyNFT">&#9672;</button>
+  <button class="rico" data-go="ocpanel" type="button" title="Solana on-chain mints" aria-label="Solana on-chain mints">&#10022;</button>
+  <span class="rgap"></span>
+  <button class="rico" id="tgbtn" type="button" title="Telegram alerts" aria-label="Telegram alerts">&#128276;</button>
+  <button class="rico" id="palbtn" type="button" title="Command palette — ⌘K" aria-label="Command palette">&#8984;</button>
+  <button class="rico" id="setbtn" type="button" title="Settings" aria-label="Settings" aria-expanded="false">&#9881;</button>
+  <button class="rico" id="signin" type="button" title="Sign in" aria-label="Sign in">&#9680;</button>
+</nav>
 <div class="wrap">
 
-  <div class="top">
-    <div class="brand"><svg class="logo" width="34" height="34" viewBox="0 0 40 40" role="img" aria-label="Mint Radar"><defs><linearGradient id="mrs1" x1="0" y1="0" x2="1" y2="0.6"><stop offset="0" stop-color="var(--orange)" stop-opacity=".6"/><stop offset="1" stop-color="var(--orange)" stop-opacity="0"/></linearGradient></defs><circle cx="20" cy="20" r="18.2" fill="none" stroke="currentColor" stroke-opacity=".26" stroke-width="1.4"/><circle cx="20" cy="20" r="12.6" fill="none" stroke="currentColor" stroke-opacity=".18" stroke-width="1.1"/><circle cx="20" cy="20" r="7"    fill="none" stroke="currentColor" stroke-opacity=".14" stroke-width="1"/><path class="sweep" d="M20 20 L20 1.8 A18.2 18.2 0 0 1 35.8 11 Z" fill="url(#mrs1)"/><path d="M20 12.4 L26 20 L20 27.6 L14 20 Z" fill="var(--orange)"/><path d="M20 12.4 L26 20 L20 20 Z" fill="var(--accText)" fill-opacity=".22"/><circle cx="30.6" cy="12.2" r="2.5" fill="var(--orange)"/><circle cx="30.6" cy="12.2" r="5" fill="var(--orange)" fill-opacity=".18"/></svg><span class="wm"><b>MINT RADAR</b><small>ETH · BASE · SOL</small></span></div>
-    <div class="forms">
-      <form id="scan">
-        <input id="addr" placeholder="wallet(s) — 0x… for EVM or base58 for Solana, comma-separated for several" autocomplete="off" spellcheck="false">
-        <select id="chains" aria-label="Chains">
-          <option value="">Auto-detect</option>
-          <option value="ethereum">Ethereum</option>
-          <option value="base">Base</option>
-          <option value="ethereum,base">ETH + Base</option>
-          <option value="solana">Solana</option>
-        </select>
-        <button id="go" class="btn" type="submit">SCAN</button>
-        <button id="calbtn" class="btn ghost" type="button">CALENDARS</button>
-        <button id="vaultbtn" class="btn ghost" type="button" title="Browse and download the art you own">MY NFTS</button>
-        <button id="tgbtn" class="btn ghost" type="button" title="Telegram alerts">🔔 TELEGRAM</button>
-        <button id="signin" class="btn ghost" type="button" hidden>SIGN IN</button>
-      </form>
-      <form id="one">
-        <input id="slug" placeholder="or one drop: paste a collection URL or slug" autocomplete="off" spellcheck="false">
-        <button id="go1" class="btn ghost" type="submit">CHECK</button>
-      </form>
+  <div class="topline">
+    <form id="scan">
+      <input id="addr" placeholder="wallet — 0x… for EVM or base58 for Solana, comma-separated for several" autocomplete="off" spellcheck="false">
+      <select id="chains" aria-label="Chains">
+        <option value="">Auto-detect</option>
+        <option value="ethereum">Ethereum</option>
+        <option value="base">Base</option>
+        <option value="ethereum,base">ETH + Base</option>
+        <option value="solana">Solana</option>
+      </select>
+      <button id="go" class="btn" type="submit">SCAN</button>
+    </form>
+    <form id="one">
+      <input id="slug" placeholder="or one collection — URL or slug" autocomplete="off" spellcheck="false">
+      <button id="go1" class="btn ghost" type="submit">CHECK</button>
+    </form>
+    <div class="seg" id="viewseg"><span class="lbl2">VIEW</span>
+      <button data-v="bubbles" class="on" type="button">CIRCLES</button>
+      <button data-v="table" type="button">TABLE</button>
     </div>
   </div>
 
   <div class="panel" id="panel">
-    <h2><span class="tt">Your radar</span><em id="elig">Paste an EVM address to scan drops you can mint, or a Solana address for launchpad mints, your NFTs and trending collections. Nothing is signed or sent — only public APIs and on-chain data are read.</em>
+    <h2><span class="tt">Your radar</span><em id="elig" title="Paste an EVM address to scan drops you can mint, or a Solana address for launchpad mints, your NFTs and trending collections. Nothing is signed or sent — only public APIs and on-chain data are read.">Paste a wallet to see what you can mint — nothing is signed or sent</em>
       <button class="toggle" id="fold" type="button">HIDE ▲</button></h2>
     <div class="chips" id="chips"></div>
   </div>
 
+  <div class="strips" id="strips">
   <div class="panel" id="calpanel" hidden>
     <h2><span class="tt">Mint calendar</span><em id="calmeta"></em>
       <span class="calctl">
@@ -573,7 +690,7 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
   </div>
 
   <div class="panel" id="lmpanel">
-    <h2><span class="tt">LaunchMyNFT · live mints</span><em>Solana mints go live on LaunchMyNFT the moment a creator deploys — there's no schedule to read, so the live explore page is embedded here. Prices are in each chain's native token.</em>
+    <h2><span class="tt">LaunchMyNFT · live mints</span><em title="Solana mints go live on LaunchMyNFT the moment a creator deploys — there's no schedule to read, so the live explore page is embedded here. Prices are in each chain's native token.">live Solana deploys — no schedule to read</em>
       <span class="calctl">
         <span class="lmnft-src">
           <button class="pill on" data-lm="latest" type="button">LATEST</button>
@@ -584,6 +701,7 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
       </span></h2>
     <div class="lmnft" id="lmnft"><div class="ph3">Loading LaunchMyNFT…</div><iframe id="lmframe" title="LaunchMyNFT explore — live mints" loading="lazy" referrerpolicy="no-referrer-when-downgrade" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"></iframe></div>
   </div>
+  </div>
 
   <div class="ticker" id="ticker" hidden>
     <span class="live"><i></i>LIVE</span>
@@ -593,22 +711,11 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
 
   <div class="bar" id="bar" hidden>
     <div class="tabs" id="tabs"></div>
-    <div class="seg" id="viewseg"><span class="lbl2">VIEW</span>
-      <button data-v="bubbles" class="on" type="button">CIRCLES</button>
-      <button data-v="table" type="button">TABLE</button>
-    </div>
     <div class="seg" id="seg"><span class="lbl2">GROUP BY</span>
       <button data-g="chain" class="on" type="button">CHAIN</button>
       <button data-g="status" type="button">STATUS</button>
       <button data-g="phase" type="button">PHASE</button>
     </div>
-    <button class="pill" id="dense" type="button" title="Smaller circles, tighter grid">DENSE</button>
-    <button class="pill" id="sound" type="button" title="Beep when a phase opens">🔇 SOUND</button>
-    <button class="pill" id="sigf" type="button" title="Hide COLD-signal projects (no socials, no community)">HOT+ ONLY</button>
-    <button class="pill" id="layoutbtn" type="button" title="Drag circles to rearrange them">⠿ ARRANGE</button>
-    <button class="pill" id="themebtn" type="button" title="Colour theme">◐ THEME</button>
-    <button class="pill" id="palbtn" type="button" title="Command palette">⌘K</button>
-    <div class="tog" id="hide"><span>HIDE WHAT I CAN'T MINT</span><div class="sw"></div></div>
   </div>
 
   <div class="status" id="status"></div>
@@ -623,7 +730,23 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
   </div>
 
 </div>
+</div>
 
+<div class="pop setpop" id="setpop">
+  <h5>DISPLAY</h5>
+  <button class="pill" id="themebtn" type="button" title="Colour theme">&#9680; THEME</button>
+  <button class="pill" id="dense" type="button" title="Smaller circles, tighter grid">DENSE</button>
+  <button class="pill" id="layoutbtn" type="button" title="Drag circles to rearrange them">&#10303; ARRANGE</button>
+  <hr>
+  <h5>WHAT YOU SEE</h5>
+  <button class="pill" id="sigf" type="button" title="Hide COLD-signal projects (no socials, no community)">HOT+ ONLY</button>
+  <div class="tog" id="hide"><span>HIDE WHAT I CAN'T MINT</span><div class="sw"></div></div>
+  <hr>
+  <h5>ALERTS</h5>
+  <button class="pill" id="sound" type="button" title="Beep when a phase opens">&#128263; SOUND</button>
+  <hr>
+  <div class="setnote">Telegram, the command palette and sign-in sit at the foot of the rail.</div>
+</div>
 <div class="pop" id="themepop"></div>
 <div class="pop" id="tgpop"></div>
 <div class="pop" id="acctpop"></div>
@@ -656,16 +779,23 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
     <button class="x2" id="vaultx" type="button" aria-label="Close">✕</button>
   </div>
   <form id="vscan" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-    <input id="vaddr" class="vsearch" style="flex:1 1 320px;min-width:220px" placeholder="wallet address — 0x… for EVM, base58 for Solana" autocomplete="off" spellcheck="false">
+    <input id="vaddr" class="vsearch" style="flex:1 1 300px;min-width:200px" placeholder="wallet address — 0x… for EVM, base58 for Solana" autocomplete="off" spellcheck="false">
+    <input id="vslug" class="vsearch" style="flex:1 1 240px;min-width:180px" placeholder="collection (optional) — slug or OpenSea URL" autocomplete="off" spellcheck="false">
     <button class="btn" id="vgo" type="submit">SCAN</button>
   </form>
   <div class="vbar" id="vbar" hidden>
     <button class="pill" id="vall" type="button">SELECT ALL</button>
     <button class="pill" id="vnone" type="button">CLEAR</button>
+    <button class="pill" id="vfold" type="button">COLLAPSE ALL</button>
+    <span class="seg" id="vgroup" role="group" aria-label="Group by">
+      <b>GROUP</b>
+      <button class="pill on" data-g="collection" type="button">COLLECTION</button>
+      <button class="pill" data-g="chain" type="button">CHAIN</button>
+      <button class="pill" data-g="none" type="button">NONE</button>
+    </span>
     <input id="vfilter" class="vsearch" placeholder="filter by name or collection" autocomplete="off">
     <span class="cnt" id="vcount"></span>
     <span class="sp"></span>
-    <button class="btn ghost" id="vfolder" type="button" hidden>SAVE TO FOLDER…</button>
     <button class="btn" id="vzip" type="button">DOWNLOAD .ZIP</button>
   </div>
   <div class="vprog" id="vprog" hidden><i></i></div>
@@ -1743,7 +1873,7 @@ $("ocbody").addEventListener("click", (e) => {
 $("timeline").addEventListener("click", (e) => { const r = e.target.closest(".row[data-id]"); if (r) { e.preventDefault(); openSheet(r.dataset.id); } });
 $("veil").addEventListener("click", closeSheet);
 $("sx").addEventListener("click", closeSheet);
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeSheet(); closeCalendars(); closeVault(); palClose(); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeSheet(); closeCalendars(); closeVault(); palClose(); closePops(); } });
 
 document.addEventListener("click", async (e) => {
   const c = e.target.closest("[data-copy]");
@@ -1834,6 +1964,21 @@ async function openCalendars() {
   await loadCalendars(false); renderCalendars();
 }
 function closeCalendars() { $("cal").classList.remove("on"); $("cal").setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
+// Rail destinations. Each one reveals its section and marks itself current.
+function railGo(btn) {
+  const target = btn.dataset.go;
+  for (const o of $("rail").querySelectorAll(".rico[data-go]")) o.classList.toggle("on", o === btn);
+  if (target === "top") { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+  const el = $(target);
+  if (!el || el.hidden) { $("status").textContent = target === "ocpanel"
+    ? "No on-chain Solana mints right now — set HELIUS_API_KEY or QUICKNODE_RPC_URL to read them."
+    : "Nothing to show there yet."; return; }
+  el.classList.remove("folded");
+  const fold = el.querySelector(".toggle");
+  if (fold) fold.innerHTML = "HIDE &#9650;";
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+for (const b of $("rail").querySelectorAll(".rico[data-go]")) b.addEventListener("click", () => railGo(b));
 $("calbtn").addEventListener("click", openCalendars);
 $("calx").addEventListener("click", closeCalendars);
 
@@ -1967,15 +2112,51 @@ function zipVersion(c) { return c.zip64 ? 45 : 20; }
    Deliberately separate from the radar: different job, its own panel, its own scan.
    Images are pulled through /api/nfts?route=img because almost no NFT host sends CORS
    headers, and without CORS the page can display a picture but cannot save it. */
-const VAULT = { address: "", nfts: [], sel: new Set(), filter: "", loading: false, busy: false };
-const CAN_FOLDER = typeof window.showDirectoryPicker === "function" && window.isSecureContext;
+const VAULT = { address: "", slug: "", nfts: [], sel: new Set(), folded: new Set(), filter: "", group: "collection", loading: false, busy: false, meta: {} };
 
 const vImg = (url, w) => url ? `/api/nfts?route=img&url=${encodeURIComponent(url)}` + (w ? `&w=${w}` : "") : "";
 
+// Accepts a bare slug, an OpenSea collection URL, or a Magic Eden URL — same as the CHECK box.
+function vSlug(raw) {
+  const t = String(raw || "").trim();
+  if (!t) return "";
+  const os = t.match(/opensea\.io\/collection\/([a-z0-9._-]+)/i);
+  if (os) return os[1].toLowerCase();
+  const me = t.match(/magiceden\.io\/(?:marketplace|launchpad)\/([a-z0-9._-]+)/i);
+  if (me) return me[1].toLowerCase();
+  return /^[a-z0-9._-]+$/i.test(t) ? t.toLowerCase() : "";
+}
 function vFiltered() {
   const q = VAULT.filter.trim().toLowerCase();
   if (!q) return VAULT.nfts;
   return VAULT.nfts.filter((n) => (n.name || "").toLowerCase().includes(q) || (n.collection || "").toLowerCase().includes(q) || (n.tokenId || "").toLowerCase().includes(q));
+}
+// "the-puyo-paradox" → "The Puyo Paradox". OpenSea gives us the slug; the pretty name
+// would cost one extra API call per collection, which isn't worth it for a label.
+function vPretty(slug) {
+  if (!slug) return "Uncategorised";
+  if (/\s/.test(slug)) return slug;                       // already a real name (Solana gives these)
+  return slug.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+const vGroupKey = (n) => VAULT.group === "chain" ? (n.chain || "other") : (n.collection || n.contract || "");
+// [{key, label, items}] ordered biggest group first, so the big collections are up top.
+function vGroups(rows) {
+  if (VAULT.group === "none") return [{ key: "*", label: "", items: rows }];
+  const map = new Map();
+  for (const n of rows) {
+    const k = vGroupKey(n);
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(n);
+  }
+  return [...map.entries()]
+    .map(([key, items]) => ({
+      key,
+      // items with no collection are still grouped by contract (so they stay separate),
+      // but labelled plainly rather than with a raw 0x address
+      label: VAULT.group === "chain" ? key.toUpperCase() : items[0].collection ? vPretty(items[0].collection) : "No collection",
+      items,
+    }))
+    .sort((a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label));
 }
 function vCard(n) {
   const on = VAULT.sel.has(n.id);
@@ -1990,32 +2171,68 @@ function vCard(n) {
 function renderVault() {
   const rows = vFiltered();
   $("vbar").hidden = !VAULT.nfts.length;
-  $("vfolder").hidden = !CAN_FOLDER || !VAULT.nfts.length;
   if (VAULT.loading) { $("vbody").innerHTML = `<div class="empty3">Reading the wallet…</div>`; return; }
   if (!VAULT.nfts.length) { $("vbody").innerHTML = `<div class="empty3">Nothing found for that address.</div>`; return; }
-  $("vbody").innerHTML = `<div class="vgrid">${rows.map(vCard).join("")}</div>
-    <p class="vnote">Files are named <b>collection_tokenid_name.ext</b>. Images come straight from wherever the collection stores them (IPFS, Arweave, the marketplace CDN) — nothing is re-encoded, so what you save is the original file.</p>`;
+
+  const groups = vGroups(rows);
+  const body = groups.map((g) => {
+    const folded = VAULT.folded.has(g.key);
+    const all = g.items.every((n) => VAULT.sel.has(n.id));
+    const some = !all && g.items.some((n) => VAULT.sel.has(n.id));
+    const grid = `<div class="vgrid">${g.items.map(vCard).join("")}</div>`;
+    if (VAULT.group === "none") return grid;
+    return `<section class="vgrp${folded ? " folded" : ""}" data-gk="${esc(g.key)}">
+      <h4>
+        <button class="gfold" type="button" data-gfold="${esc(g.key)}" aria-expanded="${!folded}">${folded ? "▸" : "▾"}</button>
+        <span class="gn">${esc(g.label)}</span>
+        <span class="gc">${g.items.length}</span>
+        <span class="gs">${some ? `${g.items.filter((n) => VAULT.sel.has(n.id)).length} picked` : ""}</span>
+        <button class="pill sm" type="button" data-gsel="${esc(g.key)}">${all ? "UNSELECT" : "SELECT"} ALL</button>
+      </h4>
+      ${grid}
+    </section>`;
+  }).join("");
+
+  const warn = VAULT.meta.truncated
+    ? `<div class="vwarn">Hit the fetch limit — this is a partial list. Narrow it with the chain picker and scan again to see the rest.</div>` : "";
+  $("vbody").innerHTML = warn + body +
+    `<p class="vnote">Files are named <b>collection_tokenid_name.ext</b>. Images come straight from wherever the collection stores them (IPFS, Arweave, the marketplace CDN) — nothing is re-encoded, so what you save is the original file.</p>`;
   vCount();
 }
 function vCount() {
   const shown = vFiltered().length, total = VAULT.nfts.length, sel = VAULT.sel.size;
-  $("vcount").innerHTML = `<b>${sel}</b> selected · ${shown === total ? `${total} item${total === 1 ? "" : "s"}` : `${shown} of ${total} shown`}`;
+  const groups = VAULT.group === "none" ? 0 : vGroups(vFiltered()).length;
+  $("vfold").hidden = !groups;
+  $("vfold").textContent = groups && VAULT.folded.size >= groups ? "EXPAND ALL" : "COLLAPSE ALL";
+  $("vcount").innerHTML = `<b>${sel}</b> selected · ${shown === total ? `${total} item${total === 1 ? "" : "s"}` : `${shown} of ${total} shown`}`
+    + (groups ? ` · ${groups} ${VAULT.group === "chain" ? "chain" : "collection"}${groups === 1 ? "" : "s"}` : "");
   const label = sel ? ` (${sel})` : "";
   $("vzip").textContent = "DOWNLOAD .ZIP" + label;
-  $("vfolder").textContent = "SAVE TO FOLDER…" + label;
 }
-async function vaultScan(addr) {
+async function vaultScan(addr, slugRaw) {
   const a = (addr || "").trim();
   if (!a) return;
-  VAULT.address = a; VAULT.loading = true; VAULT.nfts = []; VAULT.sel.clear();
-  $("vmeta").textContent = `reading ${short(a)}…`;
+  const slug = vSlug(slugRaw === undefined ? $("vslug").value : slugRaw);
+  if (!slug && String(slugRaw ?? $("vslug").value).trim()) {
+    $("vmeta").textContent = "that collection doesn't look like a slug or an OpenSea URL";
+    return;
+  }
+  VAULT.address = a; VAULT.slug = slug; VAULT.loading = true; VAULT.nfts = []; VAULT.sel.clear();
+  $("vmeta").textContent = `reading ${short(a)}${slug ? ` · ${slug}` : ""}…`;
   renderVault();
   try {
-    const r = await fetchJson(`/api/nfts?route=list&address=${encodeURIComponent(a)}`);
+    const r = await fetchJson(`/api/nfts?route=list&address=${encodeURIComponent(a)}`
+      + (slug ? `&collection=${encodeURIComponent(slug)}` : ""));
     VAULT.nfts = r.nfts || [];
-    const chains = [...new Set(VAULT.nfts.map((n) => n.chain))];
-    $("vmeta").textContent = `${r.count} item${r.count === 1 ? "" : "s"} held by ${short(a)}${chains.length ? ` · ${chains.join(", ")}` : ""}`
-      + (r.errors?.length ? ` · ${r.errors.length} chain(s) failed` : "");
+    VAULT.meta = r;
+    VAULT.folded.clear();
+    // Per-chain counts, so a chain returning nothing is visibly nothing rather than silently missing.
+    const per = (r.byChain || []).filter((c) => c.count || c.error).map((c) => `${c.chain} ${c.count}${c.error ? " ⚠" : ""}${c.truncated ? "+" : ""}`);
+    $("vmeta").textContent = `${r.count} item${r.count === 1 ? "" : "s"} held by ${short(a)}`
+      + (slug ? ` in ${slug}` : "")
+      + (per.length ? ` · ${per.join(" · ")}` : "")
+      + (r.truncated ? " · partial list" : "")
+      + (r.errors?.length ? ` · ${r.errors.map((e) => `${e.chain} failed`).join(", ")}` : "");
   } catch (e) {
     VAULT.nfts = [];
     $("vmeta").textContent = "couldn't read that wallet";
@@ -2087,30 +2304,16 @@ function vFinish(n, failed, where) {
   $("vprog").hidden = true;
   $("vmeta").textContent = `saved ${n - failed} of ${n} to ${where}` + (failed ? ` · ${failed} couldn't be fetched` : "");
   VAULT.busy = false;
-  $("vzip").disabled = false; $("vfolder").disabled = false;
+  $("vzip").disabled = false;
 }
 function vStart() {
   const items = vSelected();
   if (!items.length) { $("vmeta").textContent = "pick at least one first — click the tiles"; return null; }
   if (VAULT.busy) return null;
-  VAULT.busy = true; $("vzip").disabled = true; $("vfolder").disabled = true;
+  VAULT.busy = true; $("vzip").disabled = true;
   return items;
 }
-// Save straight into a folder the user picks. Chromium only, and only over https.
-async function vSaveToFolder() {
-  const items = vStart(); if (!items) return;
-  let dir;
-  try { dir = await window.showDirectoryPicker({ mode: "readwrite", id: "mintradar-nfts" }); }
-  catch { VAULT.busy = false; $("vzip").disabled = false; $("vfolder").disabled = false; $("vmeta").textContent = "folder pick cancelled"; return; }
-  const { failed } = await vEach(items, async (n, got, used) => {
-    const fh = await dir.getFileHandle(vName(n, got.type, used), { create: true });
-    const w = await fh.createWritable();
-    await w.write(got.bytes);
-    await w.close();
-  });
-  vFinish(items.length, failed, "the folder you chose");
-}
-// Universal fallback: build one .zip in memory and hand it to the browser.
+// Fetch each selected image, pack them into one .zip, hand it to the browser.
 async function vSaveZip() {
   const items = vStart(); if (!items) return;
   const files = [];
@@ -2128,31 +2331,72 @@ async function vSaveZip() {
 /* ---------- wiring ---------- */
 function openVault() {
   $("vault").classList.add("on"); $("vault").setAttribute("aria-hidden", "false"); document.body.style.overflow = "hidden";
-  $("vfolder").hidden = !CAN_FOLDER || !VAULT.nfts.length;
   const seed = ADDRESSES[0] || "";
   if (seed && !$("vaddr").value) $("vaddr").value = seed;
-  if (seed && !VAULT.nfts.length && !VAULT.loading) vaultScan(seed);
+  if (seed && !VAULT.nfts.length && !VAULT.loading) vaultScan(seed, $("vslug").value);
   setTimeout(() => $("vaddr").focus(), 30);
 }
 function closeVault() { $("vault").classList.remove("on"); $("vault").setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
 $("vaultbtn").addEventListener("click", openVault);
 $("vaultx").addEventListener("click", closeVault);
-$("vscan").addEventListener("submit", (e) => { e.preventDefault(); vaultScan($("vaddr").value); });
-$("vrefresh").addEventListener("click", () => { if (VAULT.address) vaultScan(VAULT.address); });
+$("vscan").addEventListener("submit", (e) => { e.preventDefault(); vaultScan($("vaddr").value, $("vslug").value); });
+$("vrefresh").addEventListener("click", () => { if (VAULT.address) vaultScan(VAULT.address, VAULT.slug); });
 $("vall").addEventListener("click", () => { for (const n of vFiltered()) VAULT.sel.add(n.id); renderVault(); });
 $("vnone").addEventListener("click", () => { VAULT.sel.clear(); renderVault(); });
+$("vfold").addEventListener("click", () => {
+  const keys = vGroups(vFiltered()).map((g) => g.key);
+  const collapse = VAULT.folded.size < keys.length;      // any open → collapse; all closed → open
+  VAULT.folded = new Set(collapse ? keys : []);
+  renderVault();
+});
 $("vfilter").addEventListener("input", (e) => { VAULT.filter = e.target.value; renderVault(); });
 $("vzip").addEventListener("click", vSaveZip);
-$("vfolder").addEventListener("click", vSaveToFolder);
+for (const b of $("vgroup").querySelectorAll("button[data-g]")) b.addEventListener("click", () => {
+  for (const o of $("vgroup").querySelectorAll("button[data-g]")) o.classList.toggle("on", o === b);
+  VAULT.group = b.dataset.g; VAULT.folded.clear(); renderVault();
+});
 $("vbody").addEventListener("click", (e) => {
+  // collapse / expand one group
+  const fold = e.target.closest("[data-gfold]");
+  if (fold) {
+    const k = fold.dataset.gfold;
+    const now = !VAULT.folded.has(k);
+    if (now) VAULT.folded.add(k); else VAULT.folded.delete(k);
+    const sec = fold.closest(".vgrp");
+    sec.classList.toggle("folded", now);         // CSS hides the grid — no re-render, no scroll jump
+    fold.textContent = now ? "\u25B8" : "\u25BE";
+    fold.setAttribute("aria-expanded", String(!now));
+    vCount();                                    // keeps the COLLAPSE/EXPAND ALL label in step
+    return;
+  }
+  // select or clear a whole collection at once — the main reason to group them
+  const gsel = e.target.closest("[data-gsel]");
+  if (gsel) {
+    const items = vGroups(vFiltered()).find((g) => g.key === gsel.dataset.gsel)?.items || [];
+    const all = items.every((n) => VAULT.sel.has(n.id));
+    for (const n of items) { if (all) VAULT.sel.delete(n.id); else VAULT.sel.add(n.id); }
+    renderVault();
+    return;
+  }
   const c = e.target.closest(".vc[data-vid]"); if (!c) return;
   const id = c.dataset.vid;
   if (VAULT.sel.has(id)) VAULT.sel.delete(id); else VAULT.sel.add(id);
   c.classList.toggle("on", VAULT.sel.has(id));
   c.setAttribute("aria-pressed", String(VAULT.sel.has(id)));
   const tick = c.querySelector(".tick"); if (tick) tick.textContent = VAULT.sel.has(id) ? "✓" : "";
+  vGroupHeader(c.closest(".vgrp"));
   vCount();
 });
+// Keep one group's header in step with its tiles without re-rendering the grid
+// (a full re-render on every click would fight the user's scroll position).
+function vGroupHeader(sec) {
+  if (!sec) return;
+  const items = vGroups(vFiltered()).find((g) => g.key === sec.dataset.gk)?.items || [];
+  const picked = items.filter((n) => VAULT.sel.has(n.id)).length;
+  const all = items.length > 0 && picked === items.length;
+  const gs = sec.querySelector(".gs"); if (gs) gs.textContent = picked && !all ? `${picked} picked` : "";
+  const btn = sec.querySelector("[data-gsel]"); if (btn) btn.textContent = (all ? "UNSELECT" : "SELECT") + " ALL";
+}
 $("vbody").addEventListener("keydown", (e) => {
   if (e.key !== "Enter" && e.key !== " ") return;
   const c = e.target.closest(".vc[data-vid]"); if (!c) return;
@@ -2173,6 +2417,12 @@ $("calbody").addEventListener("click", (e) => {
 /* ---------- prices, auto-refresh ---------- */
 async function loadPrices() {
   try { const p = await fetchJson("/api/config?what=prices"); PRICES.sol = p.sol; PRICES.eth = p.eth; PRICES.at = Date.now(); if (ITEMS.size) render(); } catch {}
+}
+// With the rail carrying the destinations, only the radar needs to be open on arrival.
+for (const id of ["lmpanel", "calpanel", "actpanel"]) {
+  const el = $(id); if (!el) continue;
+  el.classList.add("folded");
+  const t = el.querySelector(".toggle"); if (t) t.innerHTML = "SHOW &#9660;";
 }
 loadPrices(); setInterval(loadPrices, 5 * 60000);
 // Poll the fast-moving sources. Results are edge-cached (90 s / 2 min) so this costs nothing upstream.
@@ -2243,7 +2493,7 @@ $("tgbtn").addEventListener("click", (e) => {
   e.stopPropagation();
   const open = $("tgpop").classList.contains("on");
   closePops(); if (open) return;
-  renderTgPop(); placePop($("tgpop"), $("tgbtn"));
+  renderTgPop(); placeRailPop($("tgpop"), $("tgbtn"));
 });
 
 /* ---------- sign in: Privy (Google + wallet) ----------
@@ -2289,9 +2539,14 @@ function renderAuth() {
   const b = $("signin");
   b.hidden = false;
   // Privy not configured: keep the button, but say so when it's tapped instead of vanishing silently.
-  if (!AUTH.cfg?.enabled) { b.textContent = "SIGN IN"; return; }
-  if (AUTH.user) b.innerHTML = `<span class="acct"><span class="av">${esc((whoLabel(AUTH.user)[0] || "?").toUpperCase())}</span>${esc(short(AUTH.wallets[0]?.address) || whoLabel(AUTH.user).slice(0, 14))}</span>`;
-  else b.textContent = AUTH.loading ? "…" : "SIGN IN";
+  if (!AUTH.cfg?.enabled) { b.innerHTML = "&#9680;"; b.title = "Sign in"; return; }
+  if (AUTH.user) {
+    b.innerHTML = `<span class="av">${esc((whoLabel(AUTH.user)[0] || "?").toUpperCase())}</span><span class="dot"></span>`;
+    b.title = whoLabel(AUTH.user);
+  } else {
+    b.innerHTML = AUTH.loading ? "\u2026" : "&#9680;";
+    b.title = "Sign in";
+  }
   if ($("acctpop").classList.contains("on")) renderAcctPop();
 }
 function renderAcctPop() {
@@ -2359,7 +2614,7 @@ $("signin").addEventListener("click", (e) => {
   e.stopPropagation();
   const open = $("acctpop").classList.contains("on");
   closePops(); if (open) return;
-  AUTH.err = ""; renderAcctPop(); placePop($("acctpop"), $("signin"));
+  AUTH.err = ""; renderAcctPop(); placeRailPop($("acctpop"), $("signin"));
 });
 $("acctpop").addEventListener("click", (e) => {
   const scan = e.target.closest("[data-scan]");
@@ -2416,17 +2671,43 @@ function placePop(pop, anchor) {
   pop.style.top = `${r.bottom + window.scrollY + 8}px`;
   pop.style.left = `${Math.max(12, Math.min(window.scrollX + r.right - w, window.scrollX + window.innerWidth - w - 12))}px`;
 }
-const closePops = () => { for (const id of ["themepop", "acctpop", "tgpop"]) $(id).classList.remove("on"); };
+const closePops = () => {
+  for (const id of ["themepop", "acctpop", "tgpop", "setpop"]) $(id).classList.remove("on");
+  $("setbtn").setAttribute("aria-expanded", "false");
+};
+// The rail sits on the left (or along the bottom on a phone), so its popovers open
+// beside it and clamp to the viewport rather than dropping below the button.
+function placeRailPop(pop, anchor) {
+  const r = anchor.getBoundingClientRect();
+  pop.classList.add("on");
+  const w = pop.offsetWidth, h = pop.offsetHeight, m = 10;
+  const bottomBar = window.matchMedia("(max-width:820px)").matches;
+  const left = bottomBar
+    ? Math.max(m, Math.min(r.left, window.innerWidth - w - m))
+    : Math.min(r.right + 8, window.innerWidth - w - m);
+  const top = bottomBar
+    ? Math.max(m, r.top - h - 8)
+    : Math.max(m, Math.min(r.bottom - h, window.innerHeight - h - m));
+  pop.style.left = `${window.scrollX + left}px`;
+  pop.style.top = `${window.scrollY + top}px`;
+}
+$("setbtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const open = $("setpop").classList.contains("on");
+  closePops();
+  if (!open) { placeRailPop($("setpop"), $("setbtn")); $("setbtn").setAttribute("aria-expanded", "true"); }
+});
 $("themebtn").addEventListener("click", (e) => {
   e.stopPropagation();
   const open = $("themepop").classList.contains("on");
-  closePops(); if (!open) { renderThemePop(); placePop($("themepop"), $("themebtn")); }
+  $("themepop").classList.remove("on");
+  if (!open) { renderThemePop(); placeRailPop($("themepop"), $("themebtn")); }
 });
 $("themepop").addEventListener("click", (e) => {
   const r = e.target.closest("[data-theme-id]"); if (!r) return;
   applyTheme(r.dataset.themeId); closePops();
 });
-document.addEventListener("click", (e) => { if (!e.target.closest(".pop,#themebtn,#signin,#tgbtn")) closePops(); });
+document.addEventListener("click", (e) => { if (!e.target.closest(".pop,#themebtn,#signin,#tgbtn,#setbtn")) closePops(); });
 try { applyTheme(localStorage.getItem("mintradar:theme") || "ember", false); } catch { applyTheme("ember", false); }
 
 /* ---------- arrange: drag circles into your own order ---------- */

@@ -268,26 +268,46 @@ phones the detail sheet slides up from the bottom, on desktop it docks on the ri
 ## MY NFTS — browse a wallet and save the art
 
 A separate panel (header → **MY NFTS**), deliberately not folded into the radar: different job,
-its own scan box, its own state. Paste a wallet, get a grid of everything it holds, click the
-tiles you want, then save them.
+its own scan box, its own state. Paste a wallet, optionally narrow it to one collection, get a grid
+of everything it holds grouped by collection, tick what you want, hit **DOWNLOAD .ZIP**.
 
-Two ways to save, because browsers differ:
+**The collection field is optional** and takes the same input as the CHECK box on the main page —
+a bare slug (`the-puyo-paradox`), a full OpenSea URL (`https://opensea.io/collection/the-puyo-paradox?status=ownedByYou`),
+or a Magic Eden URL. Filled in, it's passed to OpenSea as `&collection=`, so the filtering happens
+upstream: far fewer requests, and the paging cap stops mattering for a targeted lookup. Left empty,
+you get the whole wallet.
 
-- **SAVE TO FOLDER…** — picks a real folder and writes the files straight into it, one by one.
-  Uses the File System Access API, so it appears only on Chromium browsers (Chrome, Edge, Brave)
-  over https. Nothing is buffered in memory, so this is the one to use for hundreds of items.
-- **DOWNLOAD .ZIP** — works everywhere. Builds a single archive in the page and hands it to the
-  browser. The zip writer is ~90 lines inlined in `index.html` (store-only: NFT images are already
-  compressed, so deflate would burn CPU for nothing) — no CDN library, no build step.
+**Grouping.** Items are grouped by collection by default (switchable to chain, or off), biggest
+group first. Each group header carries its item count, how many are picked, a SELECT/UNSELECT ALL
+for that collection alone, and a fold arrow; COLLAPSE ALL / EXPAND ALL handles the lot. Folding is
+a CSS class rather than a re-render, so scroll position and already-loaded images survive it.
+Collection slugs are prettified for display (`the-puyo-paradox` → "The Puyo Paradox"); items with
+no collection group by contract but are labelled "No collection" rather than a raw 0x address.
 
 Files are named `collection_tokenid_name.ext`, sanitized for Windows (illegal characters, reserved
 device names like `CON`, trailing dots, and duplicates all handled). Bytes are passed through
-untouched, so what lands on disk is the original file the collection published.
+untouched, so what lands on disk is the original file the collection published. The zip writer is
+~90 lines inlined in `index.html` (store-only: NFT images are already compressed, so deflate would
+burn CPU for nothing) — no CDN library, no build step.
+
+### Not losing items
+
+The first cut of this quietly returned short lists. Three causes, all fixed, all worth remembering:
+
+1. **`limit=50` when OpenSea's documented maximum is 200** — just 4x the round trips for the same data.
+2. **A hard 20-page stop per chain** with no indication anything had been cut.
+3. **An `is_suspicious` filter** that silently dropped items — and that field isn't even documented
+   on this endpoint.
+
+Now: `limit=200`, up to 50 pages per chain, a 40 s wall-clock budget so we stop before Vercel's 60 s
+ceiling, and **nothing is ever dropped silently**. The response carries `byChain` (per-chain count,
+`truncated`, `error`), a top-level `truncated`, and a `flagged` count; the panel prints the per-chain
+counts in its header and shows a banner if the list is partial. Flagged items are shown, not hidden.
 
 ### Endpoints
 
-- `GET /api/nfts?route=list&address=<0x… | base58>[&chains=ethereum,base]` — everything the wallet
-  holds, flattened to one shape. EVM goes through OpenSea (`/chain/{chain}/account/{address}/nfts`,
+- `GET /api/nfts?route=list&address=<0x… | base58>[&collection=slug][&chains=ethereum,base][&debug=1]`
+  — everything the wallet holds, flattened to one shape. EVM goes through OpenSea (`/chain/{chain}/account/{address}/nfts`,
   paginated, across ethereum · base · matic · arbitrum · optimism · zora · blast, needs
   `OPENSEA_API_KEY`); Solana goes through Magic Eden (`/wallets/{address}/tokens`, no key). Cached
   60 s. Suspicious/spam NFTs flagged by OpenSea are dropped.
@@ -304,6 +324,41 @@ what blocks the `169.254.169.254` cloud-metadata endpoint — multicast, and the
 including IPv4-mapped addresses in either notation are all refused); redirects are followed manually
 so *every* hop is re-checked rather than just the first; only `image/*`, `video/*` and `model/*`
 come back; responses are capped at 40 MB. `ipfs://` and `ar://` are rewritten to public gateways.
+
+## Layout — the rail
+
+The shell is a 58px vertical icon rail plus a single content column. It replaced a stack of nine
+full-width bars that put ~450px of chrome above the first mint circle.
+
+The rail exists because the old toolbar mixed three different classes of control at the same visual
+weight. They're now on separate planes:
+
+| Class | Where it lives now |
+|---|---|
+| **Destinations** — radar, calendars, my NFTs, LaunchMyNFT, on-chain | Rail, top group |
+| **Set once** — theme, dense, arrange, HOT+ only, hide-what-I-can't-mint, sound | Rail gear → `#setpop` |
+| **Touched constantly** — status filters, group by, circles/table | The one toolbar row, and `#viewseg` on the scan line |
+| **Session** — Telegram, command palette, sign-in | Rail, bottom group |
+
+Other things the rail changed:
+
+- **One line above the grid.** The wallet form and the single-collection form share a row with the
+  view switch; they wrap to their own lines under 560px.
+- **Secondary panels fold by default** and sit shoulder-to-shoulder in `.strips`; opening one gives
+  it the full row. Long explanatory copy moved into `title` tooltips instead of wrapping to two lines.
+- **Sign-in is an icon.** `renderAuth()` renders an initial in a disc once you're signed in, not a
+  truncated address.
+- **Under 820px the rail becomes a bottom tab bar**, padded for the phone's home indicator with
+  `env(safe-area-inset-bottom)`.
+
+Two CSS traps worth remembering if you touch this:
+
+1. `.wrap` kept `margin: 0 auto` from the old layout. **An auto cross-axis margin cancels
+   `align-items: stretch`**, so the column sized to its content and the page scrolled sideways on a
+   phone. It's now `margin: 0; width: 100%`.
+2. Rail popovers can't use `placePop()` — that drops a panel *below* its anchor, which is off-screen
+   for a button at the foot of the rail. `placeRailPop()` opens beside the rail on desktop and
+   upward from the tab bar on a phone, clamped to the viewport in both.
 
 ## Serverless function budget
 

@@ -360,6 +360,53 @@ Two CSS traps worth remembering if you touch this:
    for a button at the foot of the rail. `placeRailPop()` opens beside the rail on desktop and
    upward from the tab bar on a phone, clamped to the viewport in both.
 
+## Staying under OpenSea's rate limit
+
+Three things in this app call OpenSea, and the heaviest is the drop scan — 400+ `/api/check`
+requests per wallet. Three layers keep that under the ~4 req/s a standard key allows:
+
+1. **One pacer per process** (`lib/opensea.js`). Concurrency limits alone don't bound a *rate*:
+   three callers each politely doing one request at a time still burst to three at once. Every
+   `osFetch` queues through one scheduler that releases requests no closer than `MIN_GAP_MS`
+   (310 ms ≈ 3.2 req/s). A 429 widens the gap for **every** caller and it decays back on clean
+   responses. `Retry-After` is honoured when OpenSea sends it.
+2. **A gate in the browser** (`RATE` in `index.html`). A scan fans out across many serverless
+   instances, which don't share the pacer above — the browser is the only place that sees the whole
+   scan, so it throttles itself and backs off hard on a 429, then eases back.
+3. **`/api/check` passes 429 through** instead of swallowing it. It used to record a rate-limited
+   drop as `status: "skipped"` — a wrong answer presented as a real one. Now the browser retries it.
+
+**Chains are opt-in.** `/api/nfts?route=list` scans **ethereum** alone unless you ask otherwise;
+`chains=all` opts into all seven. Scanning every chain is seven times the requests, and doing it by
+default is what tripped the limit in the first place. The picker in MY NFTS defaults to Ethereum,
+offers each chain individually, and lists "All chains — slower" last. The panel says which chain it
+scanned, and an empty result names it and points at the All chains option.
+
+## When a source fails
+
+Two rules, both learned from a console full of red:
+
+**A failed chain is not a truncated list.** `evmChain()` used to return `truncated: true` on any
+error, so a single rate-limited chain made the panel claim "hit the fetch limit — this is a partial
+list", which was both wrong and unactionable. The response now carries them separately:
+
+- `truncated` — we stopped paging (page cap or the 40 s budget). The wallet has more than one
+  request can return.
+- `partial` + `errors[]` — a chain failed. Its items are missing; everything else is complete.
+
+The panel names the chain and quotes the upstream reason, and the vault has a **chain picker** so
+"narrow it and scan again" is advice you can actually follow.
+
+**Don't fire seven chains at once.** That reliably trips OpenSea's rate limit. Chains now run three
+at a time (`CHAIN_CONCURRENCY`), and `osFetch` retries 429 *and* 5xx *and* timeouts with jittered
+exponential backoff over four attempts, instead of three flat retries on 429 only.
+
+**`/api/sol_mints` answers 200 when the RPC fails**, not 502. The on-chain radar is one panel on a
+page that works fine without it; a red 502 in the console reads as "the site is broken" when the
+honest answer is "Helius is rate-limiting right now". The reason travels in `error` and the panel
+prints it, with a link to `?debug=1` for the raw cause. Free Helius and QuickNode tiers rate-limit
+hard — this is the single most common cause.
+
 ## Serverless function budget
 
 Vercel's Hobby plan allows **12 serverless functions per deployment**, and every `.js` file under

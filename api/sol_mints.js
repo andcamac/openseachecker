@@ -230,7 +230,10 @@ export default async function handler(req, res) {
       ...(debug ? { pages, rpcHost: (() => { try { return new URL(RPC_URL).host; } catch { return null; } })() } : {}),
     });
   } catch (err) {
+    // 200, not 502: the radar is one panel on a page that works fine without it, and a red
+    // console line reads as "the site is broken" when the honest answer is "this provider is
+    // having a moment". The reason travels in the body and the panel prints it.
     res.setHeader("cache-control", "no-store");
-    res.status(502).json({ error: err.message, provider: PROVIDER });
+    res.status(200).json({ error: err.message, provider: PROVIDER, mints: [], counts: { total: 0, live: 0, upcoming: 0, newDeploys: 0 } });
   }
 }

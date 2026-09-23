@@ -41,6 +41,14 @@ export default async function handler(req, res) {
     signal,
     ...(debug ? { raw: drop } : {}),
   };
+  // A rate limit is not a verdict about this drop — pass the 429 through (with Retry-After
+  // when OpenSea gave one) so the browser can slow the whole scan down and come back to it,
+  // instead of recording the drop as "skipped" and quietly getting the answer wrong.
+  if (det.status === 429) {
+    res.setHeader("retry-after", "2");
+    res.setHeader("cache-control", "no-store");
+    return res.status(429).json({ error: "OpenSea rate limit", slug });
+  }
   if (!det.ok) return res.status(200).json({ ...base, status: det.status === 404 ? "not_a_drop" : "skipped", reason: drop.error || drop.detail || `HTTP ${det.status}` });
 
   // Every stage, in time order — the card renders the whole timeline, not just what's open.

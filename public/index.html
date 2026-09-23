@@ -559,7 +559,9 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
 #vgroup{background:var(--card);align-items:center;flex-wrap:wrap}
 #vgroup b{font-size:8px;letter-spacing:.1em;color:var(--dim);padding:0 6px 0 8px;font-weight:700}
 #vgroup .pill{font-size:8px;padding:4px 9px}
-.vwarn{background:var(--warm);color:var(--soft);border-radius:12px;padding:9px 12px;font-size:10px;line-height:1.5;margin:10px 0 0}
+.vwarn{background:var(--warm);color:var(--soft);border-radius:12px;padding:9px 12px;font-size:10px;line-height:1.55;margin:10px 0 0}
+.vwarn b{color:var(--orange)}
+select.vsearch{appearance:none;cursor:pointer;padding-right:26px;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 .vbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 2px;padding:9px 10px;background:var(--panel);border-radius:14px;position:sticky;top:52px;z-index:2}
 .vbar .sp{flex:1;min-width:8px}
 .vbar .cnt{font-size:11px;color:var(--soft)}
@@ -781,6 +783,17 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
   <form id="vscan" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
     <input id="vaddr" class="vsearch" style="flex:1 1 300px;min-width:200px" placeholder="wallet address — 0x… for EVM, base58 for Solana" autocomplete="off" spellcheck="false">
     <input id="vslug" class="vsearch" style="flex:1 1 240px;min-width:180px" placeholder="collection (optional) — slug or OpenSea URL" autocomplete="off" spellcheck="false">
+    <select id="vchains" class="vsearch" style="flex:0 1 165px;min-width:132px" aria-label="Chain to scan">
+      <option value="ethereum" selected>Ethereum</option>
+      <option value="base">Base</option>
+      <option value="ethereum,base">ETH + Base</option>
+      <option value="matic">Polygon</option>
+      <option value="arbitrum">Arbitrum</option>
+      <option value="optimism">Optimism</option>
+      <option value="zora">Zora</option>
+      <option value="blast">Blast</option>
+      <option value="all">All chains — slower</option>
+    </select>
     <button class="btn" id="vgo" type="submit">SCAN</button>
   </form>
   <div class="vbar" id="vbar" hidden>
@@ -808,7 +821,7 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
 "use strict";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
-const CONCURRENCY = 4;
+const CONCURRENCY = 3;   // paired with RATE below; the gate widens the gap if OpenSea complains
 const isEvm = (s) => /^0x[0-9a-fA-F]{40}$/.test(s);
 const isSol = (s) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s);
 
@@ -1270,7 +1283,17 @@ function pushEvent(ev) {
   FEED_DIRTY = true;
 }
 function renderOnchain(ocRows) {
-  if (!ocRows.length) { $("ocpanel").hidden = true; return; }
+  if (!ocRows.length) {
+    // An RPC that failed is worth saying out loud — otherwise the panel just vanishes
+    // and the on-chain radar looks like it was never built.
+    if (CHAIN_MINTS.error) {
+      $("ocpanel").hidden = false;
+      $("ocmeta").textContent = `couldn't read the chain right now — ${CHAIN_MINTS.error}`;
+      $("ocbody").innerHTML = `<div class="empty">The Solana RPC didn't answer. Free Helius and QuickNode tiers rate-limit hard; this usually clears on its own. Check <a href="/api/sol_mints?debug=1" target="_blank" rel="noopener" style="color:var(--orange)">/api/sol_mints?debug=1</a> for the raw reason.</div>`;
+      return;
+    }
+    $("ocpanel").hidden = true; return;
+  }
   $("ocpanel").hidden = false;
   const live = ocRows.filter((i) => i.status === "live").length, up = ocRows.filter((i) => i.status === "upcoming").length, fresh = ocRows.filter((i) => i.fresh).length;
   $("ocmeta").innerHTML = `<b>${live}</b> minting now · <b>${up}</b> scheduled${fresh ? ` · <b>${fresh}</b> just deployed` : ""} — read straight from Candy Machine, every launchpad and none`;
@@ -1650,9 +1673,36 @@ async function recheck(slug) {
     }
   } catch {}
 }
+/* ---------- client-side rate gate ----------
+   The server paces its own OpenSea calls, but a scan fans 400+ checks across many
+   serverless instances, which don't share that pacer. So the browser — the one place
+   that sees the whole scan — throttles itself, and backs off hard the moment OpenSea
+   says it's going too fast. */
+const RATE = { pauseUntil: 0, gap: 0, hits: 0 };
+const sleepMs = (ms) => new Promise((r) => setTimeout(r, ms));
+async function rateGate() {
+  for (let i = 0; i < 200 && Date.now() < RATE.pauseUntil; i++) await sleepMs(250);
+  if (RATE.gap) await sleepMs(RATE.gap + Math.random() * 60);
+}
+function rateLimited(retryAfterSec) {
+  RATE.hits++;
+  RATE.pauseUntil = Date.now() + Math.min(15000, (retryAfterSec || 2) * 1000);
+  RATE.gap = Math.min(1500, (RATE.gap || 150) * 2);
+  $("status").textContent = `OpenSea asked us to slow down — easing off and continuing (${RATE.hits}×)`;
+}
+function rateOk() { if (RATE.gap) RATE.gap = Math.max(0, RATE.gap - 20); }
+
 async function checkOne(address, slug) {
-  const r = await fetch(`/api/check?address=${encodeURIComponent(address)}&slug=${encodeURIComponent(slug)}`);
-  return r.json();
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await rateGate();
+    const r = await fetch(`/api/check?address=${encodeURIComponent(address)}&slug=${encodeURIComponent(slug)}`);
+    if (r.status === 429) { rateLimited(Number(r.headers.get("retry-after")) || 0); continue; }
+    const j = await r.json().catch(() => ({ error: "bad response" }));
+    if (/rate limit/i.test(j.error || "")) { rateLimited(0); continue; }
+    rateOk();
+    return j;
+  }
+  return { error: "OpenSea rate limit — try again shortly" };
 }
 
 /* ---------- scans ---------- */
@@ -2112,7 +2162,7 @@ function zipVersion(c) { return c.zip64 ? 45 : 20; }
    Deliberately separate from the radar: different job, its own panel, its own scan.
    Images are pulled through /api/nfts?route=img because almost no NFT host sends CORS
    headers, and without CORS the page can display a picture but cannot save it. */
-const VAULT = { address: "", slug: "", nfts: [], sel: new Set(), folded: new Set(), filter: "", group: "collection", loading: false, busy: false, meta: {} };
+const VAULT = { address: "", slug: "", chains: "", nfts: [], sel: new Set(), folded: new Set(), filter: "", group: "collection", loading: false, busy: false, meta: {} };
 
 const vImg = (url, w) => url ? `/api/nfts?route=img&url=${encodeURIComponent(url)}` + (w ? `&w=${w}` : "") : "";
 
@@ -2172,7 +2222,13 @@ function renderVault() {
   const rows = vFiltered();
   $("vbar").hidden = !VAULT.nfts.length;
   if (VAULT.loading) { $("vbody").innerHTML = `<div class="empty3">Reading the wallet…</div>`; return; }
-  if (!VAULT.nfts.length) { $("vbody").innerHTML = `<div class="empty3">Nothing found for that address.</div>`; return; }
+  if (!VAULT.nfts.length) {
+    const wider = VAULT.chains !== "all"
+      ? ` Only <b>${esc((VAULT.meta.chains || []).join(", ") || VAULT.chains || "one chain")}</b> was scanned — switch the picker to <b>All chains</b> if the art is somewhere else.`
+      : "";
+    $("vbody").innerHTML = `<div class="empty3">Nothing found for that address.${wider}</div>`;
+    return;
+  }
 
   const groups = vGroups(rows);
   const body = groups.map((g) => {
@@ -2193,8 +2249,12 @@ function renderVault() {
     </section>`;
   }).join("");
 
-  const warn = VAULT.meta.truncated
-    ? `<div class="vwarn">Hit the fetch limit — this is a partial list. Narrow it with the chain picker and scan again to see the rest.</div>` : "";
+  const failed = (VAULT.meta.errors || []);
+  const warn = failed.length
+    ? `<div class="vwarn"><b>${failed.map((e) => esc(e.chain)).join(", ")}</b> didn't answer, so anything held there is missing from this list — ${esc(failed[0].error)}. Everything else below is complete. Hit SCAN again, or pick a single chain to retry just that one.</div>`
+    : VAULT.meta.truncated
+      ? `<div class="vwarn">This wallet holds more than one request can return, so the list stops short. Pick a single chain, or name a collection, and scan again to see the rest.</div>`
+      : "";
   $("vbody").innerHTML = warn + body +
     `<p class="vnote">Files are named <b>collection_tokenid_name.ext</b>. Images come straight from wherever the collection stores them (IPFS, Arweave, the marketplace CDN) — nothing is re-encoded, so what you save is the original file.</p>`;
   vCount();
@@ -2217,19 +2277,23 @@ async function vaultScan(addr, slugRaw) {
     $("vmeta").textContent = "that collection doesn't look like a slug or an OpenSea URL";
     return;
   }
+  VAULT.chains = $("vchains") ? $("vchains").value : "";
   VAULT.address = a; VAULT.slug = slug; VAULT.loading = true; VAULT.nfts = []; VAULT.sel.clear();
   $("vmeta").textContent = `reading ${short(a)}${slug ? ` · ${slug}` : ""}…`;
   renderVault();
   try {
     const r = await fetchJson(`/api/nfts?route=list&address=${encodeURIComponent(a)}`
-      + (slug ? `&collection=${encodeURIComponent(slug)}` : ""));
+      + (slug ? `&collection=${encodeURIComponent(slug)}` : "")
+      + (VAULT.chains ? `&chains=${encodeURIComponent(VAULT.chains)}` : ""));
     VAULT.nfts = r.nfts || [];
     VAULT.meta = r;
     VAULT.folded.clear();
     // Per-chain counts, so a chain returning nothing is visibly nothing rather than silently missing.
     const per = (r.byChain || []).filter((c) => c.count || c.error).map((c) => `${c.chain} ${c.count}${c.error ? " ⚠" : ""}${c.truncated ? "+" : ""}`);
+    const scope = r.scannedAll ? "every chain" : (r.chains || []).join(", ");
     $("vmeta").textContent = `${r.count} item${r.count === 1 ? "" : "s"} held by ${short(a)}`
       + (slug ? ` in ${slug}` : "")
+      + (scope ? ` on ${scope}` : "")
       + (per.length ? ` · ${per.join(" · ")}` : "")
       + (r.truncated ? " · partial list" : "")
       + (r.errors?.length ? ` · ${r.errors.map((e) => `${e.chain} failed`).join(", ")}` : "");
@@ -2825,7 +2889,9 @@ document.addEventListener("keydown", (e) => {
 async function loadChainMints() {
   try {
     const r = await fetchJson("/api/sol_mints");
-    CHAIN_MINTS.list = r.mints || []; CHAIN_MINTS.disabled = !!r.disabled; CHAIN_MINTS.at = Date.now(); FRESH.chain = Date.now();
+    CHAIN_MINTS.list = r.mints || []; CHAIN_MINTS.disabled = !!r.disabled;
+    CHAIN_MINTS.error = r.error || "";        // the endpoint answers 200 and explains itself
+    CHAIN_MINTS.at = Date.now(); FRESH.chain = Date.now();
   } catch (err) { CHAIN_MINTS.list = []; CHAIN_MINTS.error = err.message; }
   render();
 }

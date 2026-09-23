@@ -265,6 +265,46 @@ phones the detail sheet slides up from the bottom, on desktop it docks on the ri
   can't cover price + gas on that chain, so OpenSea refuses to build the transaction.
   Keep a little native token in the wallet for clean yes/no answers.
 
+## MY NFTS — browse a wallet and save the art
+
+A separate panel (header → **MY NFTS**), deliberately not folded into the radar: different job,
+its own scan box, its own state. Paste a wallet, get a grid of everything it holds, click the
+tiles you want, then save them.
+
+Two ways to save, because browsers differ:
+
+- **SAVE TO FOLDER…** — picks a real folder and writes the files straight into it, one by one.
+  Uses the File System Access API, so it appears only on Chromium browsers (Chrome, Edge, Brave)
+  over https. Nothing is buffered in memory, so this is the one to use for hundreds of items.
+- **DOWNLOAD .ZIP** — works everywhere. Builds a single archive in the page and hands it to the
+  browser. The zip writer is ~90 lines inlined in `index.html` (store-only: NFT images are already
+  compressed, so deflate would burn CPU for nothing) — no CDN library, no build step.
+
+Files are named `collection_tokenid_name.ext`, sanitized for Windows (illegal characters, reserved
+device names like `CON`, trailing dots, and duplicates all handled). Bytes are passed through
+untouched, so what lands on disk is the original file the collection published.
+
+### Endpoints
+
+- `GET /api/nfts?route=list&address=<0x… | base58>[&chains=ethereum,base]` — everything the wallet
+  holds, flattened to one shape. EVM goes through OpenSea (`/chain/{chain}/account/{address}/nfts`,
+  paginated, across ethereum · base · matic · arbitrum · optimism · zora · blast, needs
+  `OPENSEA_API_KEY`); Solana goes through Magic Eden (`/wallets/{address}/tokens`, no key). Cached
+  60 s. Suspicious/spam NFTs flagged by OpenSea are dropped.
+- `GET /api/nfts?route=img&url=<image url>` — streams the image back same-origin.
+
+**Why the image proxy has to exist:** NFT art lives wherever the collection put it — IPFS gateways,
+Arweave, S3 buckets, marketplace CDNs — and almost none of those send `Access-Control-Allow-Origin`.
+Without CORS a browser can *display* an image but cannot *read its bytes*, so it can't be zipped or
+written to disk. The proxy makes the bytes same-origin.
+
+**It's a proxy, so it's an SSRF surface, and it's locked down accordingly:** https only; the
+hostname must resolve to a public unicast address (loopback, RFC1918, CGNAT, link-local — which is
+what blocks the `169.254.169.254` cloud-metadata endpoint — multicast, and the IPv6 equivalents
+including IPv4-mapped addresses in either notation are all refused); redirects are followed manually
+so *every* hop is re-checked rather than just the first; only `image/*`, `video/*` and `model/*`
+come back; responses are capped at 40 MB. `ipfs://` and `ar://` are rewritten to public gateways.
+
 ## Serverless function budget
 
 Vercel's Hobby plan allows **12 serverless functions per deployment**, and every `.js` file under
@@ -274,7 +314,7 @@ endpoints are fronted by two dispatchers:
 - `api/me.js` → `?route=launchpad|trending|wallet|collection`
 - `api/config.js` → `?what=prices|privy|alerts`
 
-That leaves 8 functions: `check, drops, holdings, sol_mints, tg, alerts_tick, me, config`. The old
+That leaves 9 functions: `check, drops, holdings, sol_mints, tg, alerts_tick, me, config, nfts`. The old
 URLs (`/api/me_launchpad`, `/api/prices`, `/api/privy_config`, …) still resolve — `vercel.json`
 rewrites them to the dispatchers — so bookmarks and any external cron keep working.
 

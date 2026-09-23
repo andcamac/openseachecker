@@ -439,6 +439,31 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
 @media (max-width:720px){.kbd{display:none}}
 
 /* ---------- calendars view ---------- */
+/* ---------- MY NFTS: pick what you own, save it to disk ---------- */
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;margin-top:4px}
+@media (max-width:600px){.vgrid{grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:9px}}
+.vc{position:relative;background:var(--card);border-radius:14px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .12s,transform .12s}
+.vc:hover{transform:translateY(-2px)}
+.vc.on{border-color:var(--orange)}
+.vc .sq{position:relative;width:100%;aspect-ratio:1;background:var(--chip);display:block}
+.vc .sq img{width:100%;height:100%;object-fit:cover;display:block}
+.vc .sq .none{position:absolute;inset:0;display:grid;place-items:center;color:var(--dim);font-size:9px;letter-spacing:.08em;text-align:center;padding:8px}
+.vc .cap{padding:7px 9px 9px}
+.vc .cap b{display:block;font-size:10px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vc .cap i{display:block;font-style:normal;font-size:9px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.vc .tick{position:absolute;top:7px;left:7px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.65);display:grid;place-items:center;color:#fff;font-size:11px;line-height:1}
+.vc.on .tick{background:var(--orange);border-color:var(--orange);color:var(--accText)}
+.vc .cn{position:absolute;top:7px;right:7px;font-size:8px;letter-spacing:.08em;padding:2px 6px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff}
+.vc .st{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.6);color:#fff;font-size:9px;letter-spacing:.08em}
+.vbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 2px;padding:9px 10px;background:var(--panel);border-radius:14px;position:sticky;top:52px;z-index:2}
+.vbar .sp{flex:1;min-width:8px}
+.vbar .cnt{font-size:11px;color:var(--soft)}
+.vbar .cnt b{color:var(--orange)}
+.vsearch{background:var(--card);border:none;border-radius:999px;color:var(--text);font:inherit;font-size:11px;padding:7px 12px;min-width:150px;flex:0 1 220px}
+.vsearch::placeholder{color:var(--dim)}
+.vnote{font-size:10px;color:var(--muted);margin:8px 2px 0;line-height:1.5}
+.vprog{height:4px;background:var(--chip);border-radius:999px;overflow:hidden;margin:10px 0 0}
+.vprog i{display:block;height:100%;background:var(--orange);width:0;transition:width .2s}
 .cal{position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;display:none;padding:16px clamp(16px,3vw,24px) 60px}
 .cal.on{display:block}
 @media (min-width:900px){.cal{inset:24px;border-radius:22px;box-shadow:0 20px 80px rgba(0,0,0,.6);border:1px solid var(--chip)}}
@@ -512,6 +537,7 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
         </select>
         <button id="go" class="btn" type="submit">SCAN</button>
         <button id="calbtn" class="btn ghost" type="button">CALENDARS</button>
+        <button id="vaultbtn" class="btn ghost" type="button" title="Browse and download the art you own">MY NFTS</button>
         <button id="tgbtn" class="btn ghost" type="button" title="Telegram alerts">🔔 TELEGRAM</button>
         <button id="signin" class="btn ghost" type="button" hidden>SIGN IN</button>
       </form>
@@ -619,6 +645,31 @@ body.layout .bubbles{outline:1px dashed var(--chip);outline-offset:8px;border-ra
     <button class="x2" id="calx" type="button" aria-label="Close">✕</button>
   </div>
   <div id="calbody"><div class="empty3">Loading…</div></div>
+</section>
+
+<section class="cal" id="vault" aria-hidden="true">
+  <div class="head">
+    <h3><b>⬇</b>MY NFTS</h3><em id="vmeta">scan a wallet to see the art it holds, then save what you pick</em>
+    <span class="calctl" style="margin-left:0">
+      <button class="pill" id="vrefresh" type="button">REFRESH</button>
+    </span>
+    <button class="x2" id="vaultx" type="button" aria-label="Close">✕</button>
+  </div>
+  <form id="vscan" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+    <input id="vaddr" class="vsearch" style="flex:1 1 320px;min-width:220px" placeholder="wallet address — 0x… for EVM, base58 for Solana" autocomplete="off" spellcheck="false">
+    <button class="btn" id="vgo" type="submit">SCAN</button>
+  </form>
+  <div class="vbar" id="vbar" hidden>
+    <button class="pill" id="vall" type="button">SELECT ALL</button>
+    <button class="pill" id="vnone" type="button">CLEAR</button>
+    <input id="vfilter" class="vsearch" placeholder="filter by name or collection" autocomplete="off">
+    <span class="cnt" id="vcount"></span>
+    <span class="sp"></span>
+    <button class="btn ghost" id="vfolder" type="button" hidden>SAVE TO FOLDER…</button>
+    <button class="btn" id="vzip" type="button">DOWNLOAD .ZIP</button>
+  </div>
+  <div class="vprog" id="vprog" hidden><i></i></div>
+  <div id="vbody"><div class="empty3">Paste a wallet address above and hit SCAN.</div></div>
 </section>
 <div class="veil" id="veil"></div>
 <aside class="sheet" id="sheet" aria-hidden="true"><div class="grab"></div><button class="x" id="sx" type="button" aria-label="Close">✕</button><div id="sheetbody"></div></aside>
@@ -1692,7 +1743,7 @@ $("ocbody").addEventListener("click", (e) => {
 $("timeline").addEventListener("click", (e) => { const r = e.target.closest(".row[data-id]"); if (r) { e.preventDefault(); openSheet(r.dataset.id); } });
 $("veil").addEventListener("click", closeSheet);
 $("sx").addEventListener("click", closeSheet);
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeSheet(); closeCalendars(); palClose(); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeSheet(); closeCalendars(); closeVault(); palClose(); } });
 
 document.addEventListener("click", async (e) => {
   const c = e.target.closest("[data-copy]");
@@ -1785,6 +1836,328 @@ async function openCalendars() {
 function closeCalendars() { $("cal").classList.remove("on"); $("cal").setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
 $("calbtn").addEventListener("click", openCalendars);
 $("calx").addEventListener("click", closeCalendars);
+
+/* ---------- zip writer (store-only; images are already compressed) ---------- */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+// DOS date/time, as ZIP has stored it since 1989.
+function dosDateTime(d) {
+  const year = Math.max(1980, d.getFullYear());
+  return {
+    time: (d.getHours() << 11) | (d.getMinutes() << 5) | (Math.floor(d.getSeconds() / 2)),
+    date: ((year - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(),
+  };
+}
+
+const utf8 = (s) => new TextEncoder().encode(s);
+
+class Writer {
+  constructor() { this.parts = []; this.len = 0; }
+  push(u8) { this.parts.push(u8); this.len += u8.length; }
+  u16(n) { const b = new Uint8Array(2); new DataView(b.buffer).setUint16(0, n, true); this.push(b); }
+  u32(n) { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, n >>> 0, true); this.push(b); }
+  u64(n) { const b = new Uint8Array(8); new DataView(b.buffer).setBigUint64(0, BigInt(n), true); this.push(b); }
+}
+
+/**
+ * files: [{ name: string, data: Uint8Array, date?: Date }]
+ * returns a Blob (browser) — the caller saves or downloads it.
+ */
+function buildZip(files) {
+  const w = new Writer();
+  const central = [];
+
+  for (const f of files) {
+    const nameBytes = utf8(f.name);
+    const data = f.data;
+    const crc = crc32(data);
+    const { time, date } = dosDateTime(f.date || new Date());
+    const offset = w.len;
+    const zip64 = data.length >= 0xffffffff || offset >= 0xffffffff;
+
+    // ---- local file header ----
+    w.u32(0x04034b50);
+    w.u16(zip64 ? 45 : 20);          // version needed
+    w.u16(0x0800);                   // flags: bit 11 = names are UTF-8
+    w.u16(0);                        // method 0 = stored
+    w.u16(time); w.u16(date);
+    w.u32(crc);
+    w.u32(zip64 ? 0xffffffff : data.length);   // compressed size
+    w.u32(zip64 ? 0xffffffff : data.length);   // uncompressed size
+    w.u16(nameBytes.length);
+    w.u16(zip64 ? 20 : 0);           // extra field length
+    w.push(nameBytes);
+    if (zip64) { w.u16(0x0001); w.u16(16); w.u64(data.length); w.u64(data.length); }
+    w.push(data);
+
+    central.push({ nameBytes, crc, size: data.length, offset, time, date, zip64 });
+  }
+
+  // ---- central directory ----
+  const cdStart = w.len;
+  for (const c of central) {
+    const needOffset64 = c.offset >= 0xffffffff;
+    const needSize64 = c.size >= 0xffffffff;
+    const extraLen = (needSize64 ? 16 : 0) + (needOffset64 ? 8 : 0);
+    w.u32(0x02014b50);
+    w.u16(zipVersion(c));            // version made by
+    w.u16(extraLen ? 45 : 20);       // version needed
+    w.u16(0x0800);
+    w.u16(0);
+    w.u16(c.time); w.u16(c.date);
+    w.u32(c.crc);
+    w.u32(needSize64 ? 0xffffffff : c.size);
+    w.u32(needSize64 ? 0xffffffff : c.size);
+    w.u16(c.nameBytes.length);
+    w.u16(extraLen ? extraLen + 4 : 0);
+    w.u16(0);                        // comment length
+    w.u16(0);                        // disk number
+    w.u16(0);                        // internal attrs
+    w.u32(0);                        // external attrs
+    w.u32(needOffset64 ? 0xffffffff : c.offset);
+    w.push(c.nameBytes);
+    if (extraLen) {
+      w.u16(0x0001); w.u16(extraLen);
+      if (needSize64) { w.u64(c.size); w.u64(c.size); }
+      if (needOffset64) { w.u64(c.offset); }
+    }
+  }
+  const cdSize = w.len - cdStart;
+  const need64 = central.length >= 0xffff || cdSize >= 0xffffffff || cdStart >= 0xffffffff;
+
+  if (need64) {
+    const z64Start = w.len;
+    w.u32(0x06064b50); w.u64(44);            // zip64 EOCD, size of remainder
+    w.u16(45); w.u16(45);
+    w.u32(0); w.u32(0);
+    w.u64(central.length); w.u64(central.length);
+    w.u64(cdSize); w.u64(cdStart);
+    w.u32(0x07064b50); w.u32(0); w.u64(z64Start); w.u32(1);   // zip64 EOCD locator
+  }
+
+  // ---- end of central directory ----
+  w.u32(0x06054b50);
+  w.u16(0); w.u16(0);
+  w.u16(need64 ? 0xffff : central.length);
+  w.u16(need64 ? 0xffff : central.length);
+  w.u32(need64 ? 0xffffffff : cdSize);
+  w.u32(need64 ? 0xffffffff : cdStart);
+  w.u16(0);
+
+  return w.parts;
+}
+
+function zipVersion(c) { return c.zip64 ? 45 : 20; }
+
+/* ---------- MY NFTS: browse what a wallet holds and save the art ----------
+   Deliberately separate from the radar: different job, its own panel, its own scan.
+   Images are pulled through /api/nfts?route=img because almost no NFT host sends CORS
+   headers, and without CORS the page can display a picture but cannot save it. */
+const VAULT = { address: "", nfts: [], sel: new Set(), filter: "", loading: false, busy: false };
+const CAN_FOLDER = typeof window.showDirectoryPicker === "function" && window.isSecureContext;
+
+const vImg = (url, w) => url ? `/api/nfts?route=img&url=${encodeURIComponent(url)}` + (w ? `&w=${w}` : "") : "";
+
+function vFiltered() {
+  const q = VAULT.filter.trim().toLowerCase();
+  if (!q) return VAULT.nfts;
+  return VAULT.nfts.filter((n) => (n.name || "").toLowerCase().includes(q) || (n.collection || "").toLowerCase().includes(q) || (n.tokenId || "").toLowerCase().includes(q));
+}
+function vCard(n) {
+  const on = VAULT.sel.has(n.id);
+  const src = n.thumb || n.image;
+  return `<div class="vc${on ? " on" : ""}" data-vid="${esc(n.id)}" role="button" tabindex="0" aria-pressed="${on}">
+    <span class="sq">${src ? `<img loading="lazy" src="${esc(vImg(src))}" alt="" onerror="this.closest('.sq').innerHTML='<span class=\\'none\\'>NO IMAGE</span>'">` : `<span class="none">NO IMAGE</span>`}</span>
+    <span class="tick">${on ? "✓" : ""}</span>
+    <span class="cn">${esc((n.chain || "").slice(0, 3).toUpperCase())}</span>
+    <span class="cap"><b>${esc(n.name || n.tokenId)}</b><i>${esc(n.collection || n.contract || "")}</i></span>
+  </div>`;
+}
+function renderVault() {
+  const rows = vFiltered();
+  $("vbar").hidden = !VAULT.nfts.length;
+  $("vfolder").hidden = !CAN_FOLDER || !VAULT.nfts.length;
+  if (VAULT.loading) { $("vbody").innerHTML = `<div class="empty3">Reading the wallet…</div>`; return; }
+  if (!VAULT.nfts.length) { $("vbody").innerHTML = `<div class="empty3">Nothing found for that address.</div>`; return; }
+  $("vbody").innerHTML = `<div class="vgrid">${rows.map(vCard).join("")}</div>
+    <p class="vnote">Files are named <b>collection_tokenid_name.ext</b>. Images come straight from wherever the collection stores them (IPFS, Arweave, the marketplace CDN) — nothing is re-encoded, so what you save is the original file.</p>`;
+  vCount();
+}
+function vCount() {
+  const shown = vFiltered().length, total = VAULT.nfts.length, sel = VAULT.sel.size;
+  $("vcount").innerHTML = `<b>${sel}</b> selected · ${shown === total ? `${total} item${total === 1 ? "" : "s"}` : `${shown} of ${total} shown`}`;
+  const label = sel ? ` (${sel})` : "";
+  $("vzip").textContent = "DOWNLOAD .ZIP" + label;
+  $("vfolder").textContent = "SAVE TO FOLDER…" + label;
+}
+async function vaultScan(addr) {
+  const a = (addr || "").trim();
+  if (!a) return;
+  VAULT.address = a; VAULT.loading = true; VAULT.nfts = []; VAULT.sel.clear();
+  $("vmeta").textContent = `reading ${short(a)}…`;
+  renderVault();
+  try {
+    const r = await fetchJson(`/api/nfts?route=list&address=${encodeURIComponent(a)}`);
+    VAULT.nfts = r.nfts || [];
+    const chains = [...new Set(VAULT.nfts.map((n) => n.chain))];
+    $("vmeta").textContent = `${r.count} item${r.count === 1 ? "" : "s"} held by ${short(a)}${chains.length ? ` · ${chains.join(", ")}` : ""}`
+      + (r.errors?.length ? ` · ${r.errors.length} chain(s) failed` : "");
+  } catch (e) {
+    VAULT.nfts = [];
+    $("vmeta").textContent = "couldn't read that wallet";
+    $("vbody").innerHTML = `<div class="empty3">${esc(e.message)}</div>`;
+    VAULT.loading = false; $("vbar").hidden = true;
+    return;
+  }
+  VAULT.loading = false;
+  renderVault();
+}
+
+/* ---------- saving ---------- */
+function vSafe(s, max) {
+  let c = String(s || "").replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_").replace(/\s+/g, " ").trim().replace(/^\.+|\.+$/g, "").trim();
+  if (/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(c)) c = "_" + c;
+  if (c.length > (max || 48)) c = c.slice(0, max || 48).trim();
+  return c || "untitled";
+}
+const EXT_OF = { "image/png": ".png", "image/jpeg": ".jpg", "image/jpg": ".jpg", "image/gif": ".gif", "image/webp": ".webp", "image/svg+xml": ".svg", "image/avif": ".avif", "video/mp4": ".mp4", "video/webm": ".webm" };
+function vName(n, type, used) {
+  const ext = EXT_OF[String(type || "").split(";")[0].toLowerCase()] || (((n.image || "").split("?")[0].match(/\.[a-z0-9]{2,4}$/i) || [""])[0]) || ".img";
+  let base = `${vSafe(n.collection || n.chain, 28)}_${vSafe(n.tokenId, 16)}_${vSafe(n.name, 32)}`;
+  let name = base + ext, i = 2;
+  while (used.has(name.toLowerCase())) name = `${base} (${i++})${ext}`;
+  used.add(name.toLowerCase());
+  return name;
+}
+function vSelected() { return VAULT.nfts.filter((n) => VAULT.sel.has(n.id)); }
+function vProgress(done, total) {
+  $("vprog").hidden = false;
+  $("vprog").firstElementChild.style.width = (done / Math.max(1, total)) * 100 + "%";
+  $("vmeta").textContent = `saving ${done}/${total}…`;
+}
+function vMark(id, text) {
+  const el = document.querySelector(`.vc[data-vid="${CSS.escape(id)}"] .sq`);
+  if (!el) return;
+  let st = el.querySelector(".st");
+  if (!text) { if (st) st.remove(); return; }
+  if (!st) { st = document.createElement("span"); st.className = "st"; el.appendChild(st); }
+  st.textContent = text;
+}
+// Fetch one NFT's bytes. Returns null (and marks the card) if it can't be had.
+async function vFetch(n) {
+  const urls = [n.image, n.thumb].filter(Boolean).filter((u, i, a) => a.indexOf(u) === i);
+  for (const u of urls) {
+    try {
+      const r = await fetch(vImg(u));
+      if (!r.ok) continue;
+      const type = r.headers.get("content-type") || "";
+      const buf = new Uint8Array(await r.arrayBuffer());
+      if (buf.length) return { bytes: buf, type };
+    } catch {}
+  }
+  return null;
+}
+async function vEach(items, fn) {
+  let done = 0, failed = 0;
+  const used = new Set();
+  for (const n of items) {
+    vMark(n.id, "…");
+    const got = await vFetch(n);
+    if (got) { await fn(n, got, used); vMark(n.id, ""); }
+    else { failed++; vMark(n.id, "FAILED"); }
+    vProgress(++done, items.length);
+  }
+  return { done, failed };
+}
+function vFinish(n, failed, where) {
+  $("vprog").hidden = true;
+  $("vmeta").textContent = `saved ${n - failed} of ${n} to ${where}` + (failed ? ` · ${failed} couldn't be fetched` : "");
+  VAULT.busy = false;
+  $("vzip").disabled = false; $("vfolder").disabled = false;
+}
+function vStart() {
+  const items = vSelected();
+  if (!items.length) { $("vmeta").textContent = "pick at least one first — click the tiles"; return null; }
+  if (VAULT.busy) return null;
+  VAULT.busy = true; $("vzip").disabled = true; $("vfolder").disabled = true;
+  return items;
+}
+// Save straight into a folder the user picks. Chromium only, and only over https.
+async function vSaveToFolder() {
+  const items = vStart(); if (!items) return;
+  let dir;
+  try { dir = await window.showDirectoryPicker({ mode: "readwrite", id: "mintradar-nfts" }); }
+  catch { VAULT.busy = false; $("vzip").disabled = false; $("vfolder").disabled = false; $("vmeta").textContent = "folder pick cancelled"; return; }
+  const { failed } = await vEach(items, async (n, got, used) => {
+    const fh = await dir.getFileHandle(vName(n, got.type, used), { create: true });
+    const w = await fh.createWritable();
+    await w.write(got.bytes);
+    await w.close();
+  });
+  vFinish(items.length, failed, "the folder you chose");
+}
+// Universal fallback: build one .zip in memory and hand it to the browser.
+async function vSaveZip() {
+  const items = vStart(); if (!items) return;
+  const files = [];
+  const { failed } = await vEach(items, (n, got, used) => { files.push({ name: vName(n, got.type, used), data: got.bytes }); });
+  if (!files.length) { vFinish(items.length, failed, "nowhere"); return; }
+  const blob = new Blob(buildZip(files), { type: "application/zip" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `mint-radar_${vSafe(VAULT.address, 12)}_${new Date().toISOString().slice(0, 10)}.zip`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  vFinish(items.length, failed, "your downloads folder");
+}
+
+/* ---------- wiring ---------- */
+function openVault() {
+  $("vault").classList.add("on"); $("vault").setAttribute("aria-hidden", "false"); document.body.style.overflow = "hidden";
+  $("vfolder").hidden = !CAN_FOLDER || !VAULT.nfts.length;
+  const seed = ADDRESSES[0] || "";
+  if (seed && !$("vaddr").value) $("vaddr").value = seed;
+  if (seed && !VAULT.nfts.length && !VAULT.loading) vaultScan(seed);
+  setTimeout(() => $("vaddr").focus(), 30);
+}
+function closeVault() { $("vault").classList.remove("on"); $("vault").setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
+$("vaultbtn").addEventListener("click", openVault);
+$("vaultx").addEventListener("click", closeVault);
+$("vscan").addEventListener("submit", (e) => { e.preventDefault(); vaultScan($("vaddr").value); });
+$("vrefresh").addEventListener("click", () => { if (VAULT.address) vaultScan(VAULT.address); });
+$("vall").addEventListener("click", () => { for (const n of vFiltered()) VAULT.sel.add(n.id); renderVault(); });
+$("vnone").addEventListener("click", () => { VAULT.sel.clear(); renderVault(); });
+$("vfilter").addEventListener("input", (e) => { VAULT.filter = e.target.value; renderVault(); });
+$("vzip").addEventListener("click", vSaveZip);
+$("vfolder").addEventListener("click", vSaveToFolder);
+$("vbody").addEventListener("click", (e) => {
+  const c = e.target.closest(".vc[data-vid]"); if (!c) return;
+  const id = c.dataset.vid;
+  if (VAULT.sel.has(id)) VAULT.sel.delete(id); else VAULT.sel.add(id);
+  c.classList.toggle("on", VAULT.sel.has(id));
+  c.setAttribute("aria-pressed", String(VAULT.sel.has(id)));
+  const tick = c.querySelector(".tick"); if (tick) tick.textContent = VAULT.sel.has(id) ? "✓" : "";
+  vCount();
+});
+$("vbody").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const c = e.target.closest(".vc[data-vid]"); if (!c) return;
+  e.preventDefault(); c.click();
+});
 $("calrefresh").addEventListener("click", async () => { $("calrefresh").textContent = "…"; await loadCalendars(true); renderCalendars(); $("calrefresh").textContent = "REFRESH"; });
 for (const b of $("cal").querySelectorAll(".pill[data-ch]")) b.addEventListener("click", () => {
   for (const o of $("cal").querySelectorAll(".pill[data-ch]")) o.classList.toggle("on", o === b);
